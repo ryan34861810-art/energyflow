@@ -1,416 +1,102 @@
+import pandas as pd
+from pyecharts import options as opts
+from pyecharts.charts import Sankey, Tab
+import glob
+import re
+from pathlib import Path
+
+# ------------------- 過濾部門層級 -------------------
 def filter_to_department_level(data):
-    """過濾資料到部門層級，只移除部門下的子分類，保留所有部門級別"""
-    # 定義部門級別的節點（包含所有主要部門）
     department_level = {
         '工業部門', '運輸部門', '農業部門', '服務業部門',
         '住宅部門', '轉換效率損失', '商業部門'
     }
 
-    print(f"\n🏢 過濾到部門層級...")
-
     filtered_data = []
-    removed_count = 0
-
     for _, row in data.iterrows():
-        source = row['Source']
-        target = row['Target']
+        source, target = row['Source'], row['Target']
+        if source in department_level and target not in department_level:
+            continue
+        filtered_data.append(row)
+    return pd.DataFrame(filtered_data)
 
-        # 移除的條件：source 是部門，target 是該部門的子分類
-        should_remove = False
-
-        if source in department_level:
-            # 如果來源是部門，檢查目標是否為該部門的子分類
-            # 子分類通常包含括號、特定關鍵字，或不是其他部門
-            if target not in department_level:
-                # 目標不是部門級別，很可能是子分類
-                should_remove = True
-
-        if should_remove:
-            removed_count += 1
-        else:
-            filtered_data.append(row)
-
-    if removed_count > 0:
-        filtered_df = pd.DataFrame(filtered_data)
-        print(f"  移除了 {removed_count} 筆部門子分類流向")
-        print(f"  保留了 {len(filtered_df)} 筆部門級別流向")
-        return filtered_df
-    else:
-        print(f"  資料已是部門級別，無需過濾")
-        return data
-
-
-def ask_department_level():
-    """詢問使用者是否只保留到部門層級"""
-    print("\n🤔 是否只分析到部門層級？")
-    print("   部門層級包括：工業部門、運輸部門、農業部門、服務業部門、住宅部門、轉換效率損失等")
-    print("   選擇「是」將不會顯示部門下的子分類（如公路運輸、鋼鐵業等）")
-
-    while True:
-        choice = input("請選擇 (y/n): ").strip().lower()
-        if choice in ['y', 'yes', '是', '要']:
-            return True
-        elif choice in ['n', 'no', '否', '不要']:
-            return False
-        else:
-            print("❌ 請輸入 y/n")
-
-
-def ask_department_level():
-    """詢問使用者是否只保留到部門層級"""
-    print("\n🤔 是否只分析到部門層級？")
-    print("   部門層級包括：工業部門、運輸部門、農業部門、服務業部門、住宅部門、轉換效率損失等")
-    print("   選擇「是」將不會顯示更細的子分類（如公路運輸、鋼鐵業等）")
-
-    while True:
-        choice = input("請選擇 (y/n): ").strip().lower()
-        if choice in ['y', 'yes', '是', '要']:
-            return True
-        elif choice in ['n', 'no', '否', '不要']:
-            return False
-        else:
-            print("❌ 請輸入 y/n")
-
-
-import pandas as pd
-from pyecharts import options as opts
-from pyecharts.charts import Sankey
-import os
-from pathlib import Path
-import glob
-import re
-
-
-def find_available_years():
-    """尋找所有可用的年份檔案"""
-    available_files = []
-
-    # 搜尋 template + 年份的檔案 (僅CSV)
-    patterns = [
-        'template*.csv'
-    ]
-
-    for pattern in patterns:
-        files = glob.glob(pattern)
-        for file in files:
-            # 提取年份
-            match = re.search(r'template(\d{2,4})', file)
-            if match:
-                year = match.group(1)
-                # 如果是2位數年份，轉換為4位數（假設是民國年份）
-                if len(year) == 2:
-                    year_int = int(year)
-                    if year_int >= 50:  # 民國50年以後
-                        year_4digit = str(1911 + year_int)
-                    else:  # 民國100年以後
-                        year_4digit = str(2011 + year_int)
-                elif len(year) == 3:
-                    # 民國年轉西元年
-                    year_4digit = str(1911 + int(year))
-                else:
-                    year_4digit = year
-
-                available_files.append({
-                    'file': file,
-                    'year': year,
-                    'year_4digit': year_4digit,
-                    'display': f"{year_4digit}年 (檔案: {file})"
-                })
-
-    # 按年份排序
-    available_files.sort(key=lambda x: x['year_4digit'])
-    return available_files
-
-
-def select_year_file():
-    """讓使用者選擇年份檔案"""
-    available_files = find_available_years()
-
-    if not available_files:
-        print("❌ 找不到任何年份檔案！")
-        print("請確保檔案名稱格式為：template + 年份 + 副檔名")
-        print("例如：template108.csv, template2023.csv 等")
-        return None
-
-    print("📂 找到以下年份的能源資料檔案：")
-    print("-" * 50)
-
-    for i, file_info in enumerate(available_files, 1):
-        print(f"  {i}. {file_info['display']}")
-
-    print("-" * 50)
-
-    while True:
+# ------------------- 讀取 CSV -------------------
+def read_csv(file_path):
+    encodings = ['utf-8-sig', 'utf-8', 'big5', 'cp950', 'gbk']
+    for enc in encodings:
         try:
-            choice = input(f"請選擇要分析的年份 (1-{len(available_files)}) 或輸入 'q' 離開: ").strip()
-
-            if choice.lower() == 'q':
-                print("👋 再見！")
-                return None
-
-            choice_num = int(choice)
-            if 1 <= choice_num <= len(available_files):
-                selected_file = available_files[choice_num - 1]
-                print(f"✅ 已選擇：{selected_file['display']}")
-                return selected_file['file'], selected_file['year_4digit']
-            else:
-                print(f"❌ 請輸入 1 到 {len(available_files)} 之間的數字")
-        except ValueError:
-            print("❌ 請輸入有效的數字")
-        except KeyboardInterrupt:
-            print("\n👋 程式已中斷")
-            return None
-
-
-def read_csv_with_encoding(file_path):
-    """嘗試多種編碼讀取CSV檔案"""
-    encodings = ['big5', 'cp950', 'gbk', 'utf-8', 'utf-8-sig']
-
-    print(f"🔄 正在讀取檔案：{file_path}")
-
-    # 檢查檔案是否存在
-    if not Path(file_path).exists():
-        print(f"❌ 找不到檔案：{file_path}")
-        return None
-
-    # 判斷檔案類型
-    file_extension = Path(file_path).suffix.lower()
-
-    if file_extension == '.csv':
-        # 嘗試不同編碼讀取CSV
-        for encoding in encodings:
-            try:
-                data = pd.read_csv(file_path, encoding=encoding)
-                print(f"✅ 使用 {encoding} 編碼成功！")
-                return data
-            except UnicodeDecodeError as e:
-                print(f"❌ {encoding} 編碼失敗：{e}")
-                continue
-            except Exception as e:
-                print(f"❌ {encoding} 讀取錯誤：{e}")
-                continue
-    else:
-        print(f"❌ 不支援的檔案格式：{file_extension}")
-        print("僅支援格式：.csv")
-        return None
-
-    print("❌ 所有讀取方式都失敗！")
+            return pd.read_csv(file_path, encoding=enc)
+        except:
+            continue
+    print(f"❌ 無法讀取 {file_path}")
     return None
 
-
-def clean_energy_data(data):
-    """清理能源資料"""
-    print("\n📊 原始資料資訊：")
-    print(f"  資料形狀：{data.shape}")
-    print(f"  欄位名稱：{data.columns.tolist()}")
-
-    # 顯示前幾行資料
-    print("\n前5行資料：")
-    print(data.head())
-
-    # 檢查必要欄位是否存在
-    required_columns = ['Source', 'Target', 'Value(KLOE)']
-    missing_columns = [col for col in required_columns if col not in data.columns]
-
-    if missing_columns:
-        print(f"❌ 缺少必要欄位：{missing_columns}")
-        return None
-
-    # 清理資料
-    clean_data = data.copy()
-
-    # 移除空值行和空白Source/Target
-    initial_count = len(clean_data)
-    clean_data = clean_data.dropna(subset=['Source', 'Target'])
-    clean_data = clean_data[clean_data['Source'].str.strip() != '']
-    clean_data = clean_data[clean_data['Target'].str.strip() != '']
-
-    # 移除Value為空值或小於等於0的行
-    clean_data = clean_data.dropna(subset=['Value(KLOE)'])
-    clean_data = clean_data[clean_data['Value(KLOE)'] > 0]
-
-    # 去除Source和Target的前後空白
-    clean_data['Source'] = clean_data['Source'].str.strip()
-    clean_data['Target'] = clean_data['Target'].str.strip()
-
-    final_count = len(clean_data)
-    print(f"\n🧹 資料清理結果：")
-    print(f"  原始資料：{initial_count:,} 筆")
-    print(f"  清理後：{final_count:,} 筆")
-    print(f"  移除：{initial_count - final_count:,} 筆無效資料")
-
-    # 按數值大小排序
-    clean_data = clean_data.sort_values('Value(KLOE)', ascending=False)
-
-    return clean_data
-
-
-def display_top_flows(data, top_n=10):
-    """顯示前N大能源流向"""
-    print(f"\n🔥 前{top_n}大能源流向：")
-    for i, (_, row) in enumerate(data.head(top_n).iterrows(), 1):
-        source = row['Source']
-        target = row['Target']
-        value = row['Value(KLOE)']
-        print(f"  {i:2d}. {source} → {target}: {value:,.0f} KLOE")
-
-
+# ------------------- 準備桑基圖資料 -------------------
 def prepare_sankey_data(data):
-    """準備桑基圖所需的節點和連結資料"""
-    # 取得所有唯一的節點
-    unique_nodes = set(data['Source']).union(set(data['Target']))
-    nodes = [{"name": node} for node in sorted(unique_nodes)]
-
-    print(f"\n🌐 節點數量：{len(nodes)}")
-    print("節點列表：")
-    for i, node in enumerate(sorted(unique_nodes), 1):
-        print(f"  {i:2d}. {node}")
-
-    # 建立連結
+    nodes = [{"name": n} for n in sorted(set(data['Source']).union(set(data['Target'])))]
     links = []
     for _, row in data.iterrows():
-        # 使用 KLOE 值，如果有 kKLOE 欄位則優先使用
-        if 'Value(kKLOE)' in data.columns and pd.notna(row['Value(kKLOE)']):
-            value = float(row['Value(kKLOE)'])
-        else:
-            # 將 KLOE 轉換為 kKLOE (除以1000)
-            value = float(row['Value(KLOE)'] / 1000)
-
-        links.append({
-            "source": row['Source'],
-            "target": row['Target'],
-            "value": value
-        })
-
-    print(f"🔗 連結數量：{len(links)}")
-
+        value = float(row['Value(KLOE)']/1000)
+        links.append({"source": row['Source'], "target": row['Target'], "value": value})
     return nodes, links
 
-
-def create_sankey_chart(nodes, links, year, output_file):
-    """建立桑基圖"""
-    sankey = (
-        Sankey(init_opts=opts.InitOpts(
-            width="1400px",
-            height="900px",  # 增加高度以容納標題
-            theme='westeros'
-        ))
+# ------------------- 生成單年桑基圖 -------------------
+def create_sankey_chart(nodes, links, year):
+    return (
+        Sankey(init_opts=opts.InitOpts(width="1200px", height="700px", theme='westeros'))
         .add(
-            f"台灣能源流向 ({year}年)",
+            series_name=f"{year}年能源流向",
             nodes=nodes,
             links=links,
-            linestyle_opt=opts.LineStyleOpts(
-                opacity=0.3,
-                curve=0.5,
-                color="source"
-            ),
-            label_opts=opts.LabelOpts(
-                position="right",
-                font_size=12,
-                distance=8
-            ),
-            node_gap=20,
-            pos_top="80px",  # 將桑基圖往下移，避免與標題重疊
-            pos_bottom="60px"  # 底部留空間給圖例
+            linestyle_opt=opts.LineStyleOpts(opacity=0.3, curve=0.5, color="source"),
+            label_opts=opts.LabelOpts(position="right", font_size=12),
+            node_gap=20
         )
         .set_global_opts(
             title_opts=opts.TitleOpts(
                 title=f"台灣能源流向圖 ({year}年)",
                 subtitle="資料來源：能源統計資料 | 單位：千公噸油當量",
+                pos_top="10px",
+                pos_left="center",
                 title_textstyle_opts=opts.TextStyleOpts(font_size=18),
-                subtitle_textstyle_opts=opts.TextStyleOpts(font_size=12),
-                pos_top="10px",  # 標題更靠近頂部
-                pos_left="center"  # 標題置中
+                subtitle_textstyle_opts=opts.TextStyleOpts(font_size=12)
             ),
-            legend_opts=opts.LegendOpts(
-                orient="horizontal",
-                pos_top="bottom",
-                pos_left="center"
-            )
+            legend_opts=opts.LegendOpts(orient="horizontal", pos_top="bottom", pos_left="center")
         )
     )
 
-    # 產生圖表
-    sankey.render(output_file)
-    return output_file
-
-
-def display_statistics(data, year):
-    """顯示統計資訊"""
-    total_energy = data['Value(KLOE)'].sum()
-    top_flow = data.iloc[0]
-
-    print(f"\n📈 {year}年統計資訊：")
-    print(f"  總能源流量：{total_energy:,.0f} 公噸油當量")
-    print(f"  主要能源來源：{top_flow['Source']}")
-    print(f"  最大流向：{top_flow['Source']} → {top_flow['Target']}")
-    print(f"  最大流量：{top_flow['Value(KLOE)']:,.0f} 公噸油當量")
-
-    # 額外統計
-    print(f"  能源來源種類：{data['Source'].nunique()} 種")
-    print(f"  能源去向種類：{data['Target'].nunique()} 種")
-    print(f"  平均流量：{data['Value(KLOE)'].mean():,.0f} 公噸油當量")
-
-
+# ------------------- 主程式 -------------------
 def main():
-    """主要執行函數"""
-    print("=" * 60)
-    print("🌟 台灣能源流向桑基圖生成器 - 年份選擇版 🌟")
-    print("=" * 60)
+    tab = Tab()
+    csv_files = glob.glob("template*.csv")
+    csv_files.sort()
 
-    # 選擇年份檔案
-    result = select_year_file()
-    if result is None:
+    for file_path in csv_files:
+        match = re.search(r'template(\d+)', file_path)
+        if not match:
+            continue
+        year_raw = match.group(1)
+        year = str(int(year_raw)+1911) if len(year_raw)<=3 else year_raw  # 民國轉西元
+
+        data = read_csv(file_path)
+        if data is None or 'Source' not in data.columns or 'Target' not in data.columns or 'Value(KLOE)' not in data.columns:
+            continue
+
+        # 過濾部門層級
+        data = filter_to_department_level(data)
+
+        nodes, links = prepare_sankey_data(data)
+        sankey_chart = create_sankey_chart(nodes, links, year)
+
+        tab.add(sankey_chart, f"{year}年")
+
+    if len(tab.options) == 0:
+        print("❌ 沒有有效的資料可生成圖表")
         return
 
-    file_path, year = result
+    output_file = "taiwan_energy_sankey_multi_year.html"
+    tab.render(output_file)
+    print(f"🎉 成功生成多年份互動桑基圖 HTML：{output_file}")
 
-    # 讀取資料
-    data = read_csv_with_encoding(file_path)
-    if data is None:
-        return
-
-    # 清理資料
-    clean_data = clean_energy_data(data)
-    if clean_data is None or len(clean_data) == 0:
-        print("❌ 沒有有效的資料可以處理！")
-        return
-
-    # 詢問是否只保留到部門層級
-    use_department_level = ask_department_level()
-
-    if use_department_level:
-        final_data = filter_to_department_level(clean_data)
-        print("✅ 使用部門層級資料")
-        output_file = f"taiwan_energy_sankey_{year}_department.html"
-    else:
-        final_data = clean_data
-        print("✅ 使用完整資料（包含子分類）")
-        output_file = f"taiwan_energy_sankey_{year}_detailed.html"
-
-    # 顯示前幾大流向
-    display_top_flows(final_data)
-
-    # 準備桑基圖資料
-    nodes, links = prepare_sankey_data(final_data)
-
-    # 建立桑基圖
-    create_sankey_chart(nodes, links, year, output_file)
-
-    print(f"\n🎉 {year}年桑基圖已成功產生！")
-    print(f"📁 檔案儲存為：{output_file}")
-    print(f"🌐 請用瀏覽器開啟這個檔案查看互動式圖表！")
-
-    # 顯示統計資訊
-    display_statistics(final_data, year)
-
-
-# 執行主程式
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n👋 程式已中斷")
-    except Exception as e:
-        print(f"\n❌ 程式執行錯誤：{e}")
-        print("請檢查檔案格式和內容是否正確")
+    main()
