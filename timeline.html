@@ -5,13 +5,14 @@ import glob
 import re
 from pathlib import Path
 
-# ------------------- 過濾部門層級 -------------------
+# ------------------------
+# 過濾部門層級
+# ------------------------
 def filter_to_department_level(data):
     department_level = {
         '工業部門', '運輸部門', '農業部門', '服務業部門',
         '住宅部門', '轉換效率損失', '商業部門'
     }
-
     filtered_data = []
     for _, row in data.iterrows():
         source, target = row['Source'], row['Target']
@@ -20,83 +21,84 @@ def filter_to_department_level(data):
         filtered_data.append(row)
     return pd.DataFrame(filtered_data)
 
-# ------------------- 讀取 CSV -------------------
+# ------------------------
+# 讀取 CSV
+# ------------------------
 def read_csv(file_path):
-    encodings = ['utf-8-sig', 'utf-8', 'big5', 'cp950', 'gbk']
+    encodings = ['big5', 'cp950', 'utf-8', 'utf-8-sig']
     for enc in encodings:
         try:
-            return pd.read_csv(file_path, encoding=enc)
+            df = pd.read_csv(file_path, encoding=enc)
+            return df
         except:
             continue
-    print(f"❌ 無法讀取 {file_path}")
     return None
 
-# ------------------- 準備桑基圖資料 -------------------
+# ------------------------
+# 準備桑基圖資料
+# ------------------------
 def prepare_sankey_data(data):
-    nodes = [{"name": n} for n in sorted(set(data['Source']).union(set(data['Target'])))]
+    nodes = [{"name": n} for n in sorted(set(data['Source']).union(data['Target']))]
     links = []
     for _, row in data.iterrows():
-        value = float(row['Value(KLOE)']/1000)
+        value = float(row['Value(KLOE)'] / 1000)  # 轉 kKLOE
         links.append({"source": row['Source'], "target": row['Target'], "value": value})
     return nodes, links
 
-# ------------------- 生成單年桑基圖 -------------------
+# ------------------------
+# 建立桑基圖
+# ------------------------
 def create_sankey_chart(nodes, links, year):
-    return (
-        Sankey(init_opts=opts.InitOpts(width="1200px", height="700px", theme='westeros'))
+    sankey = (
+        Sankey()
         .add(
             series_name=f"{year}年能源流向",
             nodes=nodes,
             links=links,
             linestyle_opt=opts.LineStyleOpts(opacity=0.3, curve=0.5, color="source"),
-            label_opts=opts.LabelOpts(position="right", font_size=12),
-            node_gap=20
+            label_opts=opts.LabelOpts(position="right", font_size=12)
         )
         .set_global_opts(
             title_opts=opts.TitleOpts(
                 title=f"台灣能源流向圖 ({year}年)",
-                subtitle="資料來源：能源統計資料 | 單位：千公噸油當量",
-                pos_top="10px",
-                pos_left="center",
-                title_textstyle_opts=opts.TextStyleOpts(font_size=18),
-                subtitle_textstyle_opts=opts.TextStyleOpts(font_size=12)
-            ),
-            legend_opts=opts.LegendOpts(orient="horizontal", pos_top="bottom", pos_left="center")
+                subtitle="單位：千公噸油當量",
+                pos_left="center"
+            )
         )
     )
+    return sankey
 
-# ------------------- 主程式 -------------------
+# ------------------------
+# 主程式
+# ------------------------
 def main():
     tab = Tab()
-    csv_files = glob.glob("template*.csv")
-    csv_files.sort()
-
-    for file_path in csv_files:
-        match = re.search(r'template(\d+)', file_path)
-        if not match:
-            continue
-        year_raw = match.group(1)
-        year = str(int(year_raw)+1911) if len(year_raw)<=3 else year_raw  # 民國轉西元
-
-        data = read_csv(file_path)
-        if data is None or 'Source' not in data.columns or 'Target' not in data.columns or 'Value(KLOE)' not in data.columns:
+    for i in range(73, 114):  # template073 ~ template113
+        file_path = f"template{i}.csv"
+        if not Path(file_path).exists():
+            print(f"跳過不存在的檔案：{file_path}")
             continue
 
-        # 過濾部門層級
-        data = filter_to_department_level(data)
+        df = read_csv(file_path)
+        if df is None:
+            print(f"讀取失敗：{file_path}")
+            continue
 
-        nodes, links = prepare_sankey_data(data)
-        sankey_chart = create_sankey_chart(nodes, links, year)
+        # 部門層級過濾（可修改為 False 使用完整資料）
+        df = filter_to_department_level(df)
 
-        tab.add(sankey_chart, f"{year}年")
+        # 檢查必要欄位
+        if not {'Source','Target','Value(KLOE)'}.issubset(df.columns):
+            print(f"缺少必要欄位：{file_path}")
+            continue
 
-    if len(tab.options) == 0:
-        print("❌ 沒有有效的資料可生成圖表")
-        return
+        nodes, links = prepare_sankey_data(df)
+        sankey = create_sankey_chart(nodes, links, year=f"{2000+i}" if i<100 else f"{1900+i}")
+        tab.add(sankey, f"{2000+i}" if i<100 else f"{1900+i}")
 
-    output_file = "taiwan_energy_sankey_multi_year.html"
-    tab.render(output_file)
-    print(f"🎉 成功生成多年份互動桑基圖 HTML：{output_file}")
+    # 輸出單一 HTML
+    tab.render("taiwan_energy_sankey_all_years.html")
+    print("✅ 已生成 taiwan_energy_sankey_all_years.html")
 
 if __name__ == "__main__":
     main()
