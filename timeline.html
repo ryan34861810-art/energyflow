@@ -52,7 +52,7 @@ body {
 </div>
 
 <script>
-const repoUrl = 'https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/';
+const repoRawBase = 'https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/';
 const start = 73, end = 113;
 const departmentLevel = new Set([
     '工業部門','運輸部門','農業部門','服務業部門','住宅部門','轉換效率損失','商業部門'
@@ -62,18 +62,22 @@ let state = { files:{}, years:[], currentYear:null, chart:null };
 
 state.chart = echarts.init(document.getElementById('sankeyChart'));
 
-function fetchCSV(year) {
-    const filename = `template${String(year).padStart(3,'0')}.csv`;
-    const url = repoUrl + filename;
-    return fetch(url)
-        .then(res => { if(!res.ok) throw 'not found'; return res.text(); })
-        .catch(()=>null); // 讀不到就返回 null
+async function fetchCSV(year){
+    const url = repoRawBase + `template${String(year).padStart(3,'0')}.csv`;
+    try{
+        const res = await fetch(url);
+        if(!res.ok) throw 'not found';
+        return await res.text();
+    }catch(e){
+        console.log(`template${String(year).padStart(3,'0')}.csv 跳過`);
+        return null;
+    }
 }
 
-async function loadAllCSVs() {
+async function loadAllCSVs(){
     for(let y=start; y<=end; y++){
         const text = await fetchCSV(y);
-        if(text) state.files[y+2000] = text; // 假設年份為2000+
+        if(text) state.files[2000+y] = text;
     }
     state.years = Object.keys(state.files).sort();
     if(state.years.length>0){
@@ -137,7 +141,7 @@ function updateUI(){
     const slider = document.getElementById('timelineSlider');
     slider.max = state.years.length-1;
     slider.value = state.years.indexOf(state.currentYear);
-    const percent = slider.value/(slider.max)*100;
+    const percent = slider.value/(slider.max||1)*100;
     slider.style.background=`linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percent}%, rgba(255,255,255,0.2) ${percent}%, rgba(255,255,255,0.2) 100%)`;
 
     const labelsDiv = document.getElementById('yearLabels');
