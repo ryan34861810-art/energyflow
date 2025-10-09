@@ -1,228 +1,161 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣能源流向桑基圖 - 時間軸版</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
-    <style>
-        /* 這裡是你的 CSS 樣式 */
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台灣能源流向桑基圖 - 時間軸版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family:'Microsoft JhengHei','Segoe UI',Arial,sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%);
+    min-height:100vh; padding:20px; color:white;
+}
+.container { max-width:1400px; margin:0 auto; }
+.header { text-align:center; margin-bottom:30px; }
+.header h1 {
+    font-size:3em;
+    background: linear-gradient(to right, #60a5fa, #34d399);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.header p { color:#cbd5e1; font-size:1.2em; }
+.timeline-container { margin-bottom: 30px; text-align:center; }
+.timeline-container input[type="range"] {
+    width: 80%; height: 12px; border-radius:6px; outline:none; -webkit-appearance:none; cursor:pointer;
+}
+.timeline-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance:none; width:24px; height:24px; border-radius:50%; background:white; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+.year-labels { display:flex; justify-content:space-between; margin-top:10px; font-size:14px; width:80%; margin:auto; }
+.year-label { cursor:pointer; transition:color 0.3s; }
+.year-label:hover { color:#60a5fa; }
+.year-display { font-size:2em; margin-top:10px; margin-bottom:10px; }
+#sankeyChart { width:100%; height:700px; border-radius:20px; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🌟 台灣能源流向桑基圖</h1>
-            <p>互動式時間軸探索能源流動</p>
-        </div>
-
-        <div class="control-panel" id="controlPanel">
-            <div class="controls-row">
-                <div class="controls-left">
-                    <button class="btn" id="playBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
-                        播放
-                    </button>
-                </div>
-                <div class="year-display" id="yearDisplay">年份</div>
-            </div>
-            <div class="timeline">
-                <input type="range" id="timelineSlider" min="0" max="0" value="0">
-                <div class="year-labels" id="yearLabels"></div>
-            </div>
-        </div>
-
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card blue">
-                <div class="stat-label">總能源流量</div>
-                <div class="stat-value" id="totalEnergy">0</div>
-                <div class="stat-unit">千公噸油當量</div>
-            </div>
-            <div class="stat-card green">
-                <div class="stat-label">能源來源</div>
-                <div class="stat-value" id="sourceCount">0</div>
-                <div class="stat-unit">種類</div>
-            </div>
-            <div class="stat-card purple">
-                <div class="stat-label">能源去向</div>
-                <div class="stat-value" id="targetCount">0</div>
-                <div class="stat-unit">種類</div>
-            </div>
-            <div class="stat-card amber">
-                <div class="stat-label">最大流向</div>
-                <div class="stat-value" id="topFlow" style="font-size:1.2em;">--</div>
-                <div class="stat-unit" id="topFlowTarget">--</div>
-            </div>
-        </div>
-
-        <div class="chart-container" id="chartContainer">
-            <div id="sankeyChart"></div>
-        </div>
-
-        <div class="info-box" id="infoBox">
-            <strong>📖 使用說明：</strong>
-            <ul>
-                <li>拖動時間軸或點擊年份切換不同年度資料</li>
-                <li>點擊「播放」按鈕自動循環播放所有年份</li>
-                <li>桑基圖只顯示部門層級</li>
-                <li>滑鼠懸停在連結和節點上查看詳細數值</li>
-            </ul>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>🌟 台灣能源流向桑基圖</h1>
+        <p>互動式時間軸探索能源流動</p>
     </div>
 
-    <script>
-        var state = {
-            files: {},
-            years: [],
-            currentYear: null,
-            isPlaying: false,
-            showDepartmentOnly: true,
-            chart: null
-        };
+    <div class="timeline-container">
+        <div class="year-display" id="yearDisplay">年份</div>
+        <input type="range" id="timelineSlider" min="0" max="0" value="0">
+        <div class="year-labels" id="yearLabels"></div>
+    </div>
 
-        var departmentLevel = new Set([
-            '工業部門','運輸部門','農業部門','服務業部門',
-            '住宅部門','轉換效率損失','商業部門'
-        ]);
+    <div id="sankeyChart"></div>
+</div>
 
-        state.chart = echarts.init(document.getElementById('sankeyChart'));
+<script>
+const repoUrl = 'https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/';
+const start = 73, end = 113;
+const departmentLevel = new Set([
+    '工業部門','運輸部門','農業部門','服務業部門','住宅部門','轉換效率損失','商業部門'
+]);
 
-        const csvFiles = {};
-        for(let i=73;i<=113;i++){
-            let numStr=i.toString().padStart(3,'0');
-            csvFiles[numStr]=`https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/template${numStr}.csv`;
+let state = { files:{}, years:[], currentYear:null, chart:null };
+
+state.chart = echarts.init(document.getElementById('sankeyChart'));
+
+function fetchCSV(year) {
+    const filename = `template${String(year).padStart(3,'0')}.csv`;
+    const url = repoUrl + filename;
+    return fetch(url)
+        .then(res => { if(!res.ok) throw 'not found'; return res.text(); })
+        .catch(()=>null); // 讀不到就返回 null
+}
+
+async function loadAllCSVs() {
+    for(let y=start; y<=end; y++){
+        const text = await fetchCSV(y);
+        if(text) state.files[y+2000] = text; // 假設年份為2000+
+    }
+    state.years = Object.keys(state.files).sort();
+    if(state.years.length>0){
+        state.currentYear = state.years[0];
+        updateUI();
+        updateChart();
+    }
+}
+
+function parseCSV(text){
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h=>h.trim());
+    let data=[];
+    for(let i=1;i<lines.length;i++){
+        const values = lines[i].split(',');
+        if(values.length>=3){
+            let row={};
+            headers.forEach((h,index)=>row[h]=values[index]?values[index].trim():'');
+            data.push(row);
         }
+    }
+    return data;
+}
 
-        async function loadAllCSV(){
-            state.years=[];
-            for(const year in csvFiles){
-                try{
-                    const response=await fetch(csvFiles[year]);
-                    if(!response.ok) throw new Error('HTTP error '+response.status);
-                    const text=await response.text();
-                    state.files[year]=text;
-                    state.years.push(year);
-                }catch(err){
-                    console.warn('讀取 CSV 失敗，跳過年份:', year, err);
-                }
-            }
-            state.years.sort();
-            if(state.years.length===0){ alert('沒有成功讀取任何年份資料！'); return; }
-            state.currentYear=state.years[0];
-            updateUI();
-            updateChart();
-        }
+function filterToDepartmentLevel(data){
+    return data.filter(r=>departmentLevel.has(r.Source) && departmentLevel.has(r.Target));
+}
 
-        function parseCSV(text){
-            var lines=text.trim().split('\n');
-            var headers=lines[0].split(',').map(h=>h.trim());
-            var data=[];
-            for(var i=1;i<lines.length;i++){
-                var values=lines[i].split(',');
-                if(values.length>=3){
-                    var row={};
-                    headers.forEach((h,index)=>{ row[h]=values[index]?values[index].trim():''; });
-                    data.push(row);
-                }
-            }
-            return data;
-        }
+function updateChart(){
+    if(!state.currentYear) return;
+    let data=parseCSV(state.files[state.currentYear]);
+    data = data.filter(r=>r.Source && r.Target && !isNaN(parseFloat(r['Value(KLOE)'])) && parseFloat(r['Value(KLOE)'])>0);
+    data = filterToDepartmentLevel(data);
 
-        function filterToDepartmentLevel(data){
-            return data.filter(row=>{
-                return departmentLevel.has(row.Source)&&departmentLevel.has(row.Target);
-            });
-        }
+    let nodes = new Set(), links=[];
+    data.forEach(r=>{
+        nodes.add(r.Source); nodes.add(r.Target);
+        links.push({ source:r.Source, target:r.Target, value: parseFloat(r['Value(KLOE)'])/1000 });
+    });
 
-        function updateUI(){
-            document.getElementById('timelineSlider').max=state.years.length-1;
-            document.getElementById('timelineSlider').value=state.years.indexOf(state.currentYear);
-            document.getElementById('yearDisplay').textContent=state.currentYear;
+    state.chart.setOption({
+        tooltip: {
+            trigger:'item',
+            triggerOn:'mousemove',
+            formatter: p => p.dataType==='edge'? `${p.data.source} → ${p.data.target}<br/>流量: ${p.value.toFixed(1)} kKLOE` : p.name
+        },
+        series:[{
+            type:'sankey',
+            layout:'none',
+            emphasis:{ focus:'adjacency' },
+            data:Array.from(nodes).map(n=>({name:n})),
+            links:links,
+            lineStyle:{ color:'gradient', curveness:0.5, opacity:0.4 },
+            label:{ color:'#fff', fontSize:12 }
+        }]
+    }, true);
+}
 
-            const labelsDiv=document.getElementById('yearLabels');
-            labelsDiv.innerHTML='';
-            state.years.forEach((y,i)=>{
-                let span=document.createElement('span');
-                span.className='year-label';
-                span.textContent=y;
-                span.style.color=(y===state.currentYear)?'#60a5fa':'#fff';
-                span.onclick=()=>{ state.currentYear=y; updateUI(); updateChart(); }
-                labelsDiv.appendChild(span);
-            });
-        }
+function updateUI(){
+    document.getElementById('yearDisplay').textContent = state.currentYear + '年';
+    const slider = document.getElementById('timelineSlider');
+    slider.max = state.years.length-1;
+    slider.value = state.years.indexOf(state.currentYear);
+    const percent = slider.value/(slider.max)*100;
+    slider.style.background=`linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percent}%, rgba(255,255,255,0.2) ${percent}%, rgba(255,255,255,0.2) 100%)`;
 
-        function updateChart(){
-            const csvText=state.files[state.currentYear];
-            const parsed=parseCSV(csvText);
-            const filtered=filterToDepartmentLevel(parsed);
+    const labelsDiv = document.getElementById('yearLabels');
+    labelsDiv.innerHTML = state.years.map(y=>`<span class="year-label" data-year="${y}">${y}</span>`).join('');
+    document.querySelectorAll('.year-label').forEach(l=>{
+        l.addEventListener('click',()=>{ state.currentYear = l.dataset.year; updateUI(); updateChart(); });
+    });
+}
 
-            const nodes=new Set();
-            const links=[];
-            filtered.forEach(row=>{
-                nodes.add(row.Source); nodes.add(row.Target);
-                links.push({source:row.Source,target:row.Target,value:+row.Value});
-            });
+document.getElementById('timelineSlider').addEventListener('input', e=>{
+    state.currentYear = state.years[parseInt(e.target.value)];
+    updateUI();
+    updateChart();
+});
 
-            const option={
-                tooltip:{ trigger:'item', triggerOn:'mousemove', formatter: function(params){ 
-                    if(params.value) return `${params.source} → ${params.target}: ${params.value} 千公噸油當量`; 
-                    return params.name; 
-                }},
-                series: [{
-                    type:'sankey',
-                    data:Array.from(nodes).map(n=>({name:n})),
-                    links:links,
-                    emphasis:{focus:'adjacency'},
-                    lineStyle:{ color:'gradient', curveness:0.5 }
-                }]
-            };
-            state.chart.setOption(option);
+window.addEventListener('resize', ()=>{ state.chart.resize(); });
 
-            // 更新統計數據
-            const totalEnergy=links.reduce((sum,l)=>sum+l.value,0);
-            document.getElementById('totalEnergy').textContent=totalEnergy.toLocaleString();
-            document.getElementById('sourceCount').textContent=new Set(filtered.map(r=>r.Source)).size;
-            document.getElementById('targetCount').textContent=new Set(filtered.map(r=>r.Target)).size;
-            if(links.length>0){
-                const topLink=links.reduce((max,l)=>l.value>max.value?l:max,links[0]);
-                document.getElementById('topFlow').textContent=topLink.value;
-                document.getElementById('topFlowTarget').textContent=topLink.Target;
-            } else {
-                document.getElementById('topFlow').textContent='--';
-                document.getElementById('topFlowTarget').textContent='--';
-            }
-        }
-
-        document.getElementById('timelineSlider').addEventListener('input',function(){
-            const idx=parseInt(this.value);
-            state.currentYear=state.years[idx];
-            updateUI();
-            updateChart();
-        });
-
-        document.getElementById('playBtn').addEventListener('click',function(){
-            if(state.isPlaying){ state.isPlaying=false; this.textContent='▶ 播放'; }
-            else{
-                state.isPlaying=true;
-                this.textContent='⏸ 暫停';
-                let idx=state.years.indexOf(state.currentYear);
-                function step(){
-                    if(!state.isPlaying) return;
-                    idx=(idx+1)%state.years.length;
-                    state.currentYear=state.years[idx];
-                    updateUI(); updateChart();
-                    setTimeout(step,1500);
-                }
-                step();
-            }
-        });
-
-        window.addEventListener('resize',()=>{ state.chart.resize(); });
-
-        // 初始化
-        loadAllCSV();
-
-::contentReference[oaicite:14]{index=14}
- 
+loadAllCSVs();
+</script>
+</body>
+</html>
