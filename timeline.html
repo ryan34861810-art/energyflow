@@ -2,20 +2,37 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>能源流時間軸</title>
+  <title>能源流時間軸視覺化</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
   <style>
-    body { font-family: "Noto Sans TC", sans-serif; margin: 0; padding: 0; background: #f8f9fa; }
-    .timeline {
-      display: flex; overflow-x: auto; white-space: nowrap; background: #343a40;
-      padding: 10px; position: sticky; top: 0;
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f8f9fa;
     }
-    .timeline button {
-      background: #6c757d; color: white; border: none; padding: 8px 12px;
-      margin-right: 8px; cursor: pointer; border-radius: 4px;
+    header {
+      background: #343a40;
+      color: white;
+      padding: 15px 20px;
     }
-    .timeline button.active { background: #ffc107; color: #343a40; }
+    header h1 { margin: 0; font-size: 20px; }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #343a40;
+      padding: 15px;
+      gap: 15px;
+    }
+    #yearLabel {
+      color: #ffc107;
+      font-weight: bold;
+      font-size: 18px;
+      min-width: 80px;
+      text-align: center;
+    }
     #chart { width: 100%; height: 600px; }
     svg text { font-size: 12px; fill: #333; }
     .tooltip {
@@ -31,7 +48,13 @@
   </style>
 </head>
 <body>
-  <div class="timeline" id="timeline"></div>
+  <header>
+    <h1>臺灣能源流視覺化（部門層級）</h1>
+  </header>
+  <div class="slider-container">
+    <input type="range" id="yearSlider" min="1984" max="2024" step="1" value="1984" />
+    <span id="yearLabel">1984</span>
+  </div>
   <div id="chart"></div>
   <div class="tooltip" id="tooltip" style="opacity:0;"></div>
 
@@ -39,44 +62,49 @@
     const repoRaw = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
     const fileStart = 73;
     const fileEnd = 113;
+    const DEPARTMENT_LEVELS = ["工業部門","運輸部門","農業部門","服務業部門","住宅部門","轉換效率損失"];
 
     const years = [];
     for (let i = fileStart; i <= fileEnd; i++) {
-      const year = i + 1911;  // 073 → 1984
+      const year = i + 1911;
       years.push({ file: `template${i.toString().padStart(3, '0')}.csv`, year });
     }
 
-    const timeline = d3.select("#timeline");
-    years.forEach(y => {
-      timeline.append("button")
-        .text(y.year)
-        .on("click", (event) => loadYear(y.file, y.year, event));
-    });
+    const yearSlider = d3.select("#yearSlider")
+      .attr("min", years[0].year)
+      .attr("max", years[years.length - 1].year)
+      .on("input", function() {
+        const y = +this.value;
+        d3.select("#yearLabel").text(y);
+        const match = years.find(yy => yy.year === y);
+        if (match) loadYear(match.file, y);
+      });
 
-    let currentButton = null;
-    let yearData = {};  // {1984: Map("Source->Target": value), ...}
+    const tooltip = d3.select("#tooltip");
+    let yearData = {}; // {1984: Map(key,value)}
 
-    async function loadYear(filename, year, event) {
-      if (currentButton) currentButton.classed("active", false);
-      currentButton = d3.select(event.target).classed("active", true);
-
+    async function loadYear(filename, year) {
       const url = repoRaw + filename;
-
       try {
         const response = await fetch(url);
         if (!response.ok) throw new Error("讀取失敗");
         const csvText = await response.text();
         const data = d3.csvParse(csvText);
 
-        // 儲存當前年份的資料以供對比
+        // 🔸 僅保留部門層級的流向
+        const filtered = data.filter(d =>
+          DEPARTMENT_LEVELS.includes(d.Target.trim())
+        );
+
+        // 儲存今年資料
         const linkMap = new Map();
-        data.forEach(d => {
+        filtered.forEach(d => {
           const key = `${d.Source}->${d.Target}`;
           linkMap.set(key, +d["Value(kKLOE)"]);
         });
         yearData[year] = linkMap;
 
-        drawSankey(data, year);
+        drawSankey(filtered, year);
       } catch (err) {
         console.log(`❌ ${filename} 無法讀取：${err.message}`);
         d3.select("#chart").html(`<p style="text-align:center;">${year} 年資料讀取失敗</p>`);
@@ -84,7 +112,7 @@
     }
 
     function drawSankey(data, year) {
-      d3.select("#chart").html(""); // 清空舊圖
+      d3.select("#chart").html("");
       const width = document.getElementById("chart").clientWidth;
       const height = 600;
 
@@ -92,9 +120,6 @@
         .attr("width", width)
         .attr("height", height);
 
-      const tooltip = d3.select("#tooltip");
-
-      // Sankey資料
       const nodes = Array.from(new Set(data.flatMap(d => [d.Source, d.Target]))).map(name => ({ name }));
       const nodeIndex = Object.fromEntries(nodes.map((n, i) => [n.name, i]));
       const links = data.map(d => ({
@@ -107,7 +132,7 @@
 
       const sankey = d3.sankey()
         .nodeWidth(20)
-        .nodePadding(15)
+        .nodePadding(20)
         .extent([[1, 1], [width - 1, height - 6]]);
 
       const graph = sankey({ nodes: nodes.map(d => Object.assign({}, d)), links });
@@ -121,7 +146,7 @@
         .attr("y", d => d.y0)
         .attr("height", d => d.y1 - d.y0)
         .attr("width", d => d.x1 - d.x0)
-        .attr("fill", "#007bff");
+        .attr("fill", d => DEPARTMENT_LEVELS.includes(d.name) ? "#007bff" : "#6c757d");
 
       // 連結
       svg.append("g")
@@ -156,9 +181,7 @@
           .style("left", (event.pageX + 10) + "px")
           .style("top", (event.pageY - 30) + "px");
         })
-        .on("mouseleave", () => {
-          tooltip.transition().duration(200).style("opacity", 0);
-        });
+        .on("mouseleave", () => tooltip.transition().duration(200).style("opacity", 0));
 
       // 標籤
       svg.append("g")
@@ -182,7 +205,7 @@
     }
 
     // 預設載入第一個年份
-    loadYear(years[0].file, years[0].year, {target: timeline.select("button").node()});
+    loadYear(years[0].file, years[0].year);
   </script>
 </body>
 </html>
