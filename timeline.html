@@ -143,7 +143,8 @@
     }
     .node text {
       font-size: 14px;
-      pointer-events: none;
+      pointer-events: all;
+      cursor: pointer;
     }
     .link {
       fill: none;
@@ -168,12 +169,12 @@
 
   <div id="timeline-container">
     <label for="yearSlider">年份：</label>
-    <input type="range" id="yearSlider" min="1982" max="2024" value="1982" step="1" />
-    <span id="yearDisplay">1982</span>
+    <input type="range" id="yearSlider" min="1984" max="2024" value="1984" step="1" />
+    <span id="yearDisplay">1984</span>
   </div>
 
   <div id="stats-container">
-    <div id="stats-year">1982</div>
+    <div id="stats-year">1984</div>
     <div id="stats-grid">
       <div class="stat-item">
         <div class="stat-label">總能源供給</div>
@@ -247,7 +248,7 @@ const colorMap = {
 
 // URL
 const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
-const years = d3.range(1982, 2025);
+const years = d3.range(1984, 2025);
 const fileMap = Object.fromEntries(years.map(y => [y, `${csvBase}template${String(y-1911).padStart(3,"0")}.csv`]));
 let dataByYear = {};
 
@@ -323,7 +324,7 @@ async function loadAllCSV() {
   // 顯示每年詳細資訊
   d3.select("#debug-yearly").html(`<strong>各年份狀態:</strong><br/>${yearlyInfo.join("<br/>")}`);
   
-  updateChart(1982);
+  updateChart(1984);
 }
 
 // 拖動功能
@@ -509,7 +510,7 @@ function updateChart(year) {
   const layerX = {
     0: 150,              // 能源來源
     1: width / 2,        // 中間層（系統）
-    2: width - 170       // 部門
+    2: width - 250       // 部門（增加右側留白）
   };
   
   graphData.nodes.forEach(n => {
@@ -573,9 +574,28 @@ function updateChart(year) {
     .attr("dy", "0.35em")
     .attr("text-anchor", "end")
     .text(d => d.name)
+    .style("pointer-events", "all")
+    .style("cursor", "pointer")
     .filter(d => d.x0 < width / 2)
     .attr("x", d => d.x1 + 6)
-    .attr("text-anchor", "start");
+    .attr("text-anchor", "start")
+    .on("mousemove", function(event, d) {
+      const currentVal = d3.sum(currentData.filter(row => row.Source === d.name || row.Target === d.name),
+                               r => +r["Value(kKLOE)"]);
+      const prevVal = d3.sum(prevData.filter(row => row.Source === d.name || row.Target === d.name),
+                             r => +r["Value(kKLOE)"]);
+      const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
+      tooltip
+        .style("display", "block")
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY + 15) + "px")
+        .html(`
+          <strong>${d.name}</strong><br/>
+          ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
+          與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}
+        `);
+    })
+    .on("mouseout", () => tooltip.style("display", "none"));
 }
 
 d3.select("#yearSlider").on("input", function() {
