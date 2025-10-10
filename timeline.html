@@ -1,104 +1,217 @@
-import pandas as pd
-from pyecharts import options as opts
-from pyecharts.charts import Sankey, Tab
-import glob
-import re
-from pathlib import Path
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台灣能源流向時間軸視覺化</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    font-family:'Microsoft JhengHei','Segoe UI',Arial,sans-serif;
+    background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#064e3b 100%);
+    color:white;
+    min-height:100vh;
+    padding:20px;
+}
+.container{max-width:1400px;margin:0 auto;}
+.header{text-align:center;margin-bottom:30px;}
+.header h1{
+    font-size:2.5em;
+    background:linear-gradient(to right,#60a5fa,#34d399);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.header p{color:#cbd5e1;font-size:1.2em;}
+.timeline-container{text-align:center;margin-bottom:20px;}
+.timeline-container input[type="range"]{
+    width:80%;
+    -webkit-appearance:none;
+    height:10px;
+    background:#334155;
+    border-radius:5px;
+    outline:none;
+}
+.timeline-container input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:20px;height:20px;
+    border-radius:50%;
+    background:#fff;
+    cursor:pointer;
+    box-shadow:0 0 6px rgba(0,0,0,0.3);
+}
+.year-labels{display:flex;justify-content:space-between;width:80%;margin:auto;margin-top:10px;font-size:14px;}
+.year-label{cursor:pointer;transition:color 0.3s;}
+.year-label:hover{color:#60a5fa;}
+.year-display{font-size:2em;margin-bottom:10px;}
+#sankeyChart{width:100%;height:700px;border-radius:20px;}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🌿 台灣能源流向視覺化</h1>
+        <p>以時間軸探索能源流變化</p>
+    </div>
+    <div class="timeline-container">
+        <div class="year-display" id="yearDisplay">載入中...</div>
+        <input type="range" id="timelineSlider" min="0" max="0" value="0">
+        <div class="year-labels" id="yearLabels"></div>
+    </div>
+    <div id="sankeyChart"></div>
+</div>
 
-# ------------------------
-# 過濾部門層級
-# ------------------------
-def filter_to_department_level(data):
-    department_level = {
-        '工業部門', '運輸部門', '農業部門', '服務業部門',
-        '住宅部門', '轉換效率損失', '商業部門'
+<script>
+// ⚡ 你的 GitHub raw 檔案網址 (改成你自己的 Repo)
+const repoBase = 'https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/';
+const startIdx = 73;
+const endIdx = 113;
+
+// ⚡ 限定顯示的部門
+const departmentLevel = new Set([
+    '工業部門','運輸部門','農業部門','服務業部門',
+    '住宅部門','轉換效率損失','商業部門'
+]);
+
+let state = {
+    files: {},
+    years: [],
+    currentYear: null,
+    chart: echarts.init(document.getElementById('sankeyChart'))
+};
+
+// 🚀 抓取單一 CSV
+async function fetchCSV(yearIndex) {
+    const filename = `template${String(yearIndex).padStart(3, '0')}.csv`;
+    const url = repoBase + filename;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('not found');
+        const text = await res.text();
+        return text;
+    } catch (err) {
+        console.log(`⚠️ 找不到 ${filename}，已跳過`);
+        return null;
     }
-    filtered_data = []
-    for _, row in data.iterrows():
-        source, target = row['Source'], row['Target']
-        if source in department_level and target not in department_level:
-            continue
-        filtered_data.append(row)
-    return pd.DataFrame(filtered_data)
+}
 
-# ------------------------
-# 讀取 CSV
-# ------------------------
-def read_csv(file_path):
-    encodings = ['big5', 'cp950', 'utf-8', 'utf-8-sig']
-    for enc in encodings:
-        try:
-            df = pd.read_csv(file_path, encoding=enc)
-            return df
-        except:
-            continue
-    return None
+// 🚀 載入所有年份 CSV
+async function loadAllCSVs() {
+    for (let i = startIdx; i <= endIdx; i++) {
+        const text = await fetchCSV(i);
+        if (text) {
+            const year = 2000 + i;
+            state.files[year] = text;
+        }
+    }
+    state.years = Object.keys(state.files).sort();
+    if (state.years.length > 0) {
+        state.currentYear = state.years[0];
+        buildTimelineUI();
+        updateChart();
+    } else {
+        document.getElementById('yearDisplay').textContent = '❌ 沒有讀到任何資料';
+    }
+}
 
-# ------------------------
-# 準備桑基圖資料
-# ------------------------
-def prepare_sankey_data(data):
-    nodes = [{"name": n} for n in sorted(set(data['Source']).union(data['Target']))]
-    links = []
-    for _, row in data.iterrows():
-        value = float(row['Value(KLOE)'] / 1000)  # 轉 kKLOE
-        links.append({"source": row['Source'], "target": row['Target'], "value": value})
-    return nodes, links
+// 🚀 解析 CSV 文字成資料陣列
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const result = [];
+    for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        if (cols.length >= 3) {
+            const row = {};
+            headers.forEach((h, idx) => row[h] = cols[idx] ? cols[idx].trim() : '');
+            result.push(row);
+        }
+    }
+    return result;
+}
 
-# ------------------------
-# 建立桑基圖
-# ------------------------
-def create_sankey_chart(nodes, links, year):
-    sankey = (
-        Sankey()
-        .add(
-            series_name=f"{year}年能源流向",
-            nodes=nodes,
-            links=links,
-            linestyle_opt=opts.LineStyleOpts(opacity=0.3, curve=0.5, color="source"),
-            label_opts=opts.LabelOpts(position="right", font_size=12)
-        )
-        .set_global_opts(
-            title_opts=opts.TitleOpts(
-                title=f"台灣能源流向圖 ({year}年)",
-                subtitle="單位：千公噸油當量",
-                pos_left="center"
-            )
-        )
-    )
-    return sankey
+// 🚀 過濾部門層級
+function filterToDepartmentLevel(data) {
+    return data.filter(row =>
+        departmentLevel.has(row.Source) && departmentLevel.has(row.Target)
+    );
+}
 
-# ------------------------
-# 主程式
-# ------------------------
-def main():
-    tab = Tab()
-    for i in range(73, 114):  # template073 ~ template113
-        file_path = f"template{i}.csv"
-        if not Path(file_path).exists():
-            print(f"跳過不存在的檔案：{file_path}")
-            continue
+// 🚀 更新圖表
+function updateChart() {
+    const year = state.currentYear;
+    const text = state.files[year];
+    if (!text) return;
 
-        df = read_csv(file_path)
-        if df is None:
-            print(f"讀取失敗：{file_path}")
-            continue
+    let data = parseCSV(text);
+    data = data.filter(d => d.Source && d.Target && !isNaN(parseFloat(d['Value(KLOE)'])) && parseFloat(d['Value(KLOE)']) > 0);
+    data = filterToDepartmentLevel(data);
 
-        # 部門層級過濾（可修改為 False 使用完整資料）
-        df = filter_to_department_level(df)
+    const nodesSet = new Set();
+    const links = [];
+    data.forEach(d => {
+        nodesSet.add(d.Source);
+        nodesSet.add(d.Target);
+        links.push({
+            source: d.Source,
+            target: d.Target,
+            value: parseFloat(d['Value(KLOE)']) / 1000
+        });
+    });
 
-        # 檢查必要欄位
-        if not {'Source','Target','Value(KLOE)'}.issubset(df.columns):
-            print(f"缺少必要欄位：{file_path}")
-            continue
+    const nodes = Array.from(nodesSet).map(n => ({ name: n }));
 
-        nodes, links = prepare_sankey_data(df)
-        sankey = create_sankey_chart(nodes, links, year=f"{2000+i}" if i<100 else f"{1900+i}")
-        tab.add(sankey, f"{2000+i}" if i<100 else f"{1900+i}")
+    state.chart.setOption({
+        tooltip: {
+            trigger: 'item',
+            triggerOn: 'mousemove',
+            formatter: p => p.dataType === 'edge'
+                ? `${p.data.source} → ${p.data.target}<br/>流量: ${p.value.toFixed(1)} kKLOE`
+                : p.name
+        },
+        series: [{
+            type: 'sankey',
+            layout: 'none',
+            emphasis: { focus: 'adjacency' },
+            data: nodes,
+            links: links,
+            lineStyle: { color: 'gradient', curveness: 0.5, opacity: 0.4 },
+            label: { color: '#fff', fontSize: 12 }
+        }]
+    });
+    document.getElementById('yearDisplay').textContent = year + ' 年';
+}
 
-    # 輸出單一 HTML
-    tab.render("taiwan_energy_sankey_all_years.html")
-    print("✅ 已生成 taiwan_energy_sankey_all_years.html")
+// 🚀 建構時間軸 UI
+function buildTimelineUI() {
+    const slider = document.getElementById('timelineSlider');
+    slider.max = state.years.length - 1;
+    slider.value = 0;
 
-if __name__ == "__main__":
-    main()
+    const labelsDiv = document.getElementById('yearLabels');
+    labelsDiv.innerHTML = state.years.map(y => `<span class="year-label" data-year="${y}">${y}</span>`).join('');
+
+    document.querySelectorAll('.year-label').forEach(label => {
+        label.addEventListener('click', () => {
+            state.currentYear = label.dataset.year;
+            slider.value = state.years.indexOf(state.currentYear);
+            updateChart();
+        });
+    });
+
+    slider.addEventListener('input', e => {
+        state.currentYear = state.years[e.target.value];
+        updateChart();
+    });
+}
+
+// 🚀 縮放事件
+window.addEventListener('resize', () => {
+    state.chart.resize();
+});
+
+// 🚀 啟動
+loadAllCSVs();
+</script>
+</body>
+</html>
