@@ -2,210 +2,588 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>能源流時間軸視覺化</title>
+  <title>能源流視覺化 - Timeline</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
   <style>
     body {
       font-family: "Noto Sans TC", sans-serif;
       margin: 0;
-      padding: 0;
-      background: #f8f9fa;
+      background-color: #f5f5f5;
     }
-    header {
-      background: #343a40;
-      color: white;
-      padding: 15px 20px;
-    }
-    header h1 { margin: 0; font-size: 20px; }
-    .slider-container {
+    #timeline-container {
+      padding: 15px 30px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       display: flex;
       align-items: center;
-      justify-content: center;
-      background: #343a40;
-      padding: 15px;
       gap: 15px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    #yearLabel {
-      color: #ffc107;
+    #timeline-container label {
+      white-space: nowrap;
+    }
+    #yearSlider {
+      flex: 1;
+      min-width: 200px;
+    }
+    #yearDisplay {
+      font-size: 20px;
       font-weight: bold;
-      font-size: 18px;
-      min-width: 80px;
-      text-align: center;
+      min-width: 60px;
     }
-    #chart { width: 100%; height: 600px; }
-    svg text { font-size: 12px; fill: #333; }
-    .tooltip {
+    #stats-container {
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    #stats-year {
+      text-align: center;
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      opacity: 0.95;
+    }
+    #debug-info {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: rgba(0,0,0,0.9);
+      color: #0f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: move;
+      max-width: 400px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    #debug-info div {
+      margin: 5px 0;
+    }
+    #debug-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #0f0;
+      padding-bottom: 5px;
+      cursor: move;
+    }
+    #debug-failed {
+      color: #ff6b6b;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(255,0,0,0.1);
+      border-radius: 4px;
+    }
+    #debug-yearly {
+      color: #ffa500;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(255,165,0,0.1);
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    #debug-sample {
+      color: #00bfff;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(0,191,255,0.1);
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    #debug-filter-detail {
+      color: #ff69b4;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(255,105,180,0.1);
+      border-radius: 4px;
+      font-size: 10px;
+    }
+    #stats-grid {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      gap: 30px;
+    }
+    .stat-item {
+      text-align: center;
+      flex: 1;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    #chart {
+      width: 100%;
+      height: 80vh;
+    }
+    .node rect {
+      stroke: #333;
+      cursor: pointer;
+    }
+    .node text {
+      font-size: 14px;
+      pointer-events: none;
+    }
+    .link {
+      fill: none;
+      stroke-opacity: 0.4;
+    }
+    .link:hover {
+      stroke-opacity: 0.7;
+    }
+    #tooltip {
       position: absolute;
       background: white;
-      padding: 8px 12px;
+      padding: 8px;
       border: 1px solid #ccc;
-      border-radius: 4px;
+      border-radius: 5px;
+      display: none;
       pointer-events: none;
-      font-size: 13px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>臺灣能源流視覺化（部門層級）</h1>
-  </header>
-  <div class="slider-container">
-    <input type="range" id="yearSlider" min="1984" max="2024" step="1" value="1984" />
-    <span id="yearLabel">1984</span>
+
+  <div id="timeline-container">
+    <label for="yearSlider">年份：</label>
+    <input type="range" id="yearSlider" min="1982" max="2024" value="1982" step="1" />
+    <span id="yearDisplay">1982</span>
   </div>
+
+  <div id="stats-container">
+    <div id="stats-year">1982</div>
+    <div id="stats-grid">
+      <div class="stat-item">
+        <div class="stat-label">總能源供給</div>
+        <div class="stat-value" id="totalEnergy">-</div>
+        <div class="stat-label">ktoe</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">煤炭佔比</div>
+        <div class="stat-value" id="coalPercent">-</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">再生能源佔比</div>
+        <div class="stat-value" id="renewablePercent">-</div>
+      </div>
+    </div>
+  </div>
+
   <div id="chart"></div>
-  <div class="tooltip" id="tooltip" style="opacity:0;"></div>
+  <div id="tooltip"></div>
+  
+  <div id="debug-info">
+    <div id="debug-header">🔍 測試資訊 (可拖動)</div>
+    <div>當前讀取年份: <span id="debug-year">-</span></div>
+    <div>原始資料筆數: <span id="debug-raw-count">-</span></div>
+    <div>篩選後資料筆數: <span id="debug-count">-</span></div>
+    <div>節點數: <span id="debug-nodes">-</span></div>
+    <div>連結數: <span id="debug-links">-</span></div>
+    <div>已載入: <span id="debug-loaded">0</span></div>
+    <div id="debug-filter-detail"></div>
+    <div id="debug-sample"></div>
+    <div id="debug-failed"></div>
+    <div id="debug-yearly"></div>
+  </div>
 
-  <script>
-    const repoRaw = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
-    const fileStart = 73;
-    const fileEnd = 113;
-    const DEPARTMENT_LEVELS = ["工業部門","運輸部門","農業部門","服務業部門","住宅部門","轉換效率損失"];
+<script>
+const departments = ["工業部門","運輸部門","農業部門","服務業部門","住宅部門","轉換效率損失"];
+const energySources = ["煤及煤產品","原油及石油產品","天然氣","再生能源"];
+const chart = d3.select("#chart");
+const tooltip = d3.select("#tooltip");
+const width = window.innerWidth;
+const height = window.innerHeight * 0.8;
+const svg = chart.append("svg").attr("width", width).attr("height", height);
 
-    const years = [];
-    for (let i = fileStart; i <= fileEnd; i++) {
-      const year = i + 1911;
-      years.push({ file: `template${i.toString().padStart(3, '0')}.csv`, year });
-    }
+const sankey = d3.sankey()
+  .nodeWidth(20)
+  .nodePadding(20)
+  .extent([[150, 50], [width - 150, height - 50]])
+  .nodeAlign(d3.sankeyLeft)
+  .nodeSort((a, b) => {
+    // 先按層級排序
+    if (a.layer !== b.layer) return a.layer - b.layer;
+    // 同層級按名稱排序
+    return a.name.localeCompare(b.name);
+  });
 
-    const yearSlider = d3.select("#yearSlider")
-      .attr("min", years[0].year)
-      .attr("max", years[years.length - 1].year)
-      .on("input", function() {
-        const y = +this.value;
-        d3.select("#yearLabel").text(y);
-        const match = years.find(yy => yy.year === y);
-        if (match) loadYear(match.file, y);
-      });
+// 顏色對應表
+const colorMap = {
+  "煤及煤產品": "#444",
+  "原油及石油產品": "#a0522d",
+  "天然氣": "#4682b4",
+  "再生能源": "#2e8b57",
+  "電力系統": "#1e90ff",
+  "原油及石油的製造與分銷": "#8b4513",
+  "工業部門": "#1f77b4",
+  "運輸部門": "#ff7f0e",
+  "住宅部門": "#2ca02c",
+  "服務業部門": "#d62728",
+  "農業部門": "#9467bd",
+  "轉換效率損失": "#7f7f7f"
+};
 
-    const tooltip = d3.select("#tooltip");
-    let yearData = {}; // {1984: Map(key,value)}
+// URL
+const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
+const years = d3.range(1982, 2025);
+const fileMap = Object.fromEntries(years.map(y => [y, `${csvBase}template${String(y-1911).padStart(3,"0")}.csv`]));
+let dataByYear = {};
 
-    async function loadYear(filename, year) {
-      const url = repoRaw + filename;
+async function loadAllCSV() {
+  let loadedCount = 0;
+  const failedYears = [];
+  const yearlyInfo = [];
+  
+  d3.select("#debug-failed").html("<strong>載入中...</strong>");
+  
+  for (const y of years) {
+    const rocYear = y - 1911;
+    const urls = [
+      `${csvBase}template${String(rocYear).padStart(3,"0")}.csv`,
+      `${csvBase}template${rocYear}.csv`
+    ];
+    
+    let loaded = false;
+    for (const url of urls) {
       try {
+        // 嘗試不同編碼
         const response = await fetch(url);
-        if (!response.ok) throw new Error("讀取失敗");
-        const csvText = await response.text();
-        const data = d3.csvParse(csvText);
-
-        // 🔸 僅保留部門層級的流向
-        const filtered = data.filter(d =>
-          DEPARTMENT_LEVELS.includes(d.Target.trim())
-        );
-
-        // 儲存今年資料
-        const linkMap = new Map();
-        filtered.forEach(d => {
-          const key = `${d.Source}->${d.Target}`;
-          linkMap.set(key, +d["Value(kKLOE)"]);
-        });
-        yearData[year] = linkMap;
-
-        drawSankey(filtered, year);
-      } catch (err) {
-        console.log(`❌ ${filename} 無法讀取：${err.message}`);
-        d3.select("#chart").html(`<p style="text-align:center;">${year} 年資料讀取失敗</p>`);
+        if (!response.ok) continue;
+        
+        // 先嘗試 UTF-8
+        let text = await response.text();
+        
+        // 檢查是否有亂碼（Big5 誤讀為 UTF-8 會有特定符號）
+        if (text.includes('�') || text.match(/[\u0080-\u009F]/)) {
+          // 重新用 Big5 讀取
+          const blob = await (await fetch(url)).blob();
+          text = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsText(blob, 'Big5');
+          });
+        }
+        
+        // 解析 CSV
+        const data = d3.csvParse(text);
+        
+        if (data && data.length > 0) {
+          dataByYear[y] = data;
+          loadedCount++;
+          loaded = true;
+          
+          const filtered = filterDepartmentLevel(data);
+          const status = filtered.length > 0 ? "✓" : "⚠️";
+          yearlyInfo.push(`${status} ${y}: 原始${data.length}筆 → 篩選${filtered.length}筆`);
+          break;
+        }
+      } catch (e) {
+        // 繼續嘗試
       }
     }
-
-    function drawSankey(data, year) {
-      d3.select("#chart").html("");
-      const width = document.getElementById("chart").clientWidth;
-      const height = 600;
-
-      const svg = d3.select("#chart").append("svg")
-        .attr("width", width)
-        .attr("height", height);
-
-      const nodes = Array.from(new Set(data.flatMap(d => [d.Source, d.Target]))).map(name => ({ name }));
-      const nodeIndex = Object.fromEntries(nodes.map((n, i) => [n.name, i]));
-      const links = data.map(d => ({
-        source: nodeIndex[d.Source],
-        target: nodeIndex[d.Target],
-        sourceName: d.Source,
-        targetName: d.Target,
-        value: +d["Value(kKLOE)"]
-      }));
-
-      const sankey = d3.sankey()
-        .nodeWidth(20)
-        .nodePadding(20)
-        .extent([[1, 1], [width - 1, height - 6]]);
-
-      const graph = sankey({ nodes: nodes.map(d => Object.assign({}, d)), links });
-
-      // 節點
-      svg.append("g")
-        .selectAll("rect")
-        .data(graph.nodes)
-        .join("rect")
-        .attr("x", d => d.x0)
-        .attr("y", d => d.y0)
-        .attr("height", d => d.y1 - d.y0)
-        .attr("width", d => d.x1 - d.x0)
-        .attr("fill", d => DEPARTMENT_LEVELS.includes(d.name) ? "#007bff" : "#6c757d");
-
-      // 連結
-      svg.append("g")
-        .attr("fill", "none")
-        .selectAll("path")
-        .data(graph.links)
-        .join("path")
-        .attr("d", d3.sankeyLinkHorizontal())
-        .attr("stroke", "#999")
-        .attr("stroke-width", d => Math.max(1, d.width))
-        .attr("opacity", 0.5)
-        .on("mousemove", function(event, d) {
-          const prevYear = year - 1;
-          const key = `${d.sourceName}->${d.targetName}`;
-          const currentVal = d.value;
-          let diffText = "無資料";
-
-          if (yearData[prevYear] && yearData[prevYear].has(key)) {
-            const prevVal = yearData[prevYear].get(key);
-            const diff = ((currentVal - prevVal) / prevVal) * 100;
-            const sign = diff >= 0 ? "↑" : "↓";
-            const color = diff >= 0 ? "green" : "red";
-            diffText = `<span style="color:${color}">${sign}${Math.abs(diff).toFixed(1)}%</span>`;
-          }
-
-          tooltip.transition().duration(100).style("opacity", 1);
-          tooltip.html(`
-            <strong>${d.sourceName} → ${d.targetName}</strong><br>
-            流量：${currentVal.toLocaleString()} kKLOE<br>
-            與前一年變化：${diffText}
-          `)
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 30) + "px");
-        })
-        .on("mouseleave", () => tooltip.transition().duration(200).style("opacity", 0));
-
-      // 標籤
-      svg.append("g")
-        .style("font", "12px sans-serif")
-        .selectAll("text")
-        .data(graph.nodes)
-        .join("text")
-        .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
-        .attr("y", d => (d.y1 + d.y0) / 2)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
-        .text(d => d.name);
-
-      // 年份標題
-      svg.append("text")
-        .attr("x", 20)
-        .attr("y", 30)
-        .attr("font-size", "20px")
-        .attr("font-weight", "bold")
-        .text(`${year} 年能源流`);
+    
+    if (!loaded) {
+      failedYears.push(y);
+      yearlyInfo.push(`✗ ${y}: 載入失敗`);
     }
+    
+    d3.select("#debug-loaded").text(`${loadedCount} / ${years.length}`);
+  }
+  
+  // 顯示失敗列表
+  if (failedYears.length > 0) {
+    const failedList = failedYears.map(y => `${y}(${y-1911})`).join(", ");
+    d3.select("#debug-failed").html(`<strong>載入失敗 (${failedYears.length}個):</strong><br/>${failedList}`);
+  } else {
+    d3.select("#debug-failed").html("<strong style='color:#0f0'>✓ 全部載入成功</strong>");
+  }
+  
+  // 顯示每年詳細資訊
+  d3.select("#debug-yearly").html(`<strong>各年份狀態:</strong><br/>${yearlyInfo.join("<br/>")}`);
+  
+  updateChart(1982);
+}
 
-    // 預設載入第一個年份
-    loadYear(years[0].file, years[0].year);
-  </script>
+// 拖動功能
+let isDragging = false;
+let currentX, currentY, initialX, initialY;
+
+const debugPanel = document.getElementById("debug-info");
+
+debugPanel.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  initialX = e.clientX - debugPanel.offsetLeft;
+  initialY = e.clientY - debugPanel.offsetTop;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (isDragging) {
+    e.preventDefault();
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+    debugPanel.style.left = currentX + "px";
+    debugPanel.style.top = currentY + "px";
+    debugPanel.style.right = "auto";
+  }
+});
+
+document.addEventListener("mouseup", () => {
+  isDragging = false;
+});
+
+function filterDepartmentLevel(data) {
+  const logs = [];
+  const filtered = data.filter(d => {
+    if (!d.Source || !d.Target) {
+      logs.push(`✗ 空值: ${d.Source || '?'} → ${d.Target || '?'}`);
+      return false;
+    }
+    
+    // 目標是部門
+    if (departments.includes(d.Target)) {
+      logs.push(`✓ 部門: ${d.Source} → ${d.Target}`);
+      return true;
+    }
+    
+    // 目標包含"系統"或"製造與分銷"或"生產與分銷"
+    if (d.Target.includes("系統") || 
+        d.Target.includes("製造與分銷") || 
+        d.Target.includes("生產與分銷")) {
+      logs.push(`✓ 中間層: ${d.Source} → ${d.Target}`);
+      return true;
+    }
+    
+    // 來源是電力系統（保留所有電力系統的流向）
+    if (d.Source.includes("電力系統") || d.Source.includes("系統")) {
+      logs.push(`✓ 電力系統: ${d.Source} → ${d.Target}`);
+      return true;
+    }
+    
+    // 來源是主要能源
+    const sourceKeywords = ["煤", "原油", "石油", "天然氣", "核能", "水力", "地熱", "太陽", "風力", "生質"];
+    if (sourceKeywords.some(keyword => d.Source.includes(keyword))) {
+      logs.push(`✓ 能源: ${d.Source} → ${d.Target}`);
+      return true;
+    }
+    
+    logs.push(`✗ 篩掉: ${d.Source} → ${d.Target}`);
+    return false;
+  });
+  
+  // 顯示篩選日誌（只顯示前20筆和被篩掉的前10筆）
+  const kept = logs.filter(l => l.startsWith('✓')).slice(0, 20);
+  const removed = logs.filter(l => l.startsWith('✗')).slice(0, 10);
+  d3.select("#debug-filter-detail").html(
+    `<strong>保留 (前20筆):</strong><br/>${kept.join('<br/>')}<br/><br/>` +
+    `<strong>篩掉 (前10筆):</strong><br/>${removed.join('<br/>')}`
+  );
+  
+  return filtered;
+}
+
+function buildSankeyData(data) {
+  const nodes = Array.from(new Set(data.flatMap(d => [d.Source, d.Target]))).map(name => ({ name }));
+  const nodeMap = new Map(nodes.map((d, i) => [d.name, i]));
+  const links = data.map(d => ({
+    source: nodeMap.get(d.Source),
+    target: nodeMap.get(d.Target),
+    value: +d["Value(kKLOE)"]
+  }));
+
+  // 分層控制
+  nodes.forEach(n => {
+    // 能源來源層
+    if (energySources.some(s => n.name.includes(s.substring(0, 3))) ||
+        n.name.includes("核能") || n.name.includes("水力") || 
+        n.name.includes("地熱") || n.name.includes("太陽") || 
+        n.name.includes("風力") || n.name.includes("生質")) {
+      n.layer = 0;
+    } 
+    // 部門層
+    else if (departments.includes(n.name)) {
+      n.layer = 2;
+    } 
+    // 中間層（系統、製造與分銷等）
+    else {
+      n.layer = 1;
+    }
+  });
+
+  return { nodes, links };
+}
+
+function updateChart(year) {
+  d3.select("#yearDisplay").text(year);
+  d3.select("#stats-year").text(year);
+  d3.select("#debug-year").text(year);
+  
+  svg.selectAll("*").remove();
+
+  const rawData = dataByYear[year] || [];
+  const currentData = filterDepartmentLevel(rawData);
+  const prevData = filterDepartmentLevel(dataByYear[year - 1] || []);
+  
+  d3.select("#debug-raw-count").text(rawData.length);
+  d3.select("#debug-count").text(currentData.length);
+
+  // 顯示資料樣本
+  if (rawData.length > 0) {
+    const sample = rawData.slice(0, 3);
+    const sampleText = sample.map(d => 
+      `${d.Source || '?'} → ${d.Target || '?'} (${d["Value(kKLOE)"] || '?'})`
+    ).join("<br/>");
+    
+    const uniqueSources = [...new Set(rawData.map(d => d.Source))].slice(0, 10).join(", ");
+    const uniqueTargets = [...new Set(rawData.map(d => d.Target))].slice(0, 10).join(", ");
+    
+    d3.select("#debug-sample").html(
+      `<strong>資料樣本:</strong><br/>${sampleText}<br/><br/>` +
+      `<strong>來源類型:</strong><br/>${uniqueSources}<br/><br/>` +
+      `<strong>目標類型:</strong><br/>${uniqueTargets}`
+    );
+  }
+
+  if (!currentData.length) {
+    d3.select("#debug-nodes").text("0");
+    d3.select("#debug-links").text("0");
+    console.warn(`${year}: 篩選後無資料可顯示`);
+    return;
+  }
+
+  // 計算統計數據
+  const allData = dataByYear[year] || [];
+  
+  // 總能源供給：所有能源來源的總和
+  const energySourceKeywords = ["煤", "原油", "石油", "天然氣", "核能", "水力", "地熱", "太陽", "風力", "生質", "潮汐"];
+  const totalEnergy = d3.sum(allData.filter(d => 
+    energySourceKeywords.some(keyword => d.Source && d.Source.includes(keyword))
+  ), d => +d["Value(kKLOE)"]);
+  
+  // 煤炭佔比：所有包含"煤"的來源
+  const coalEnergy = d3.sum(allData.filter(d => 
+    d.Source && d.Source.includes("煤")
+  ), d => +d["Value(kKLOE)"]);
+  
+  // 再生能源佔比：太陽能、風力、地熱、水力、潮汐、生質能
+  const renewableKeywords = ["太陽", "風力", "地熱", "水力", "潮汐", "生質"];
+  const renewableEnergy = d3.sum(allData.filter(d => 
+    d.Source && renewableKeywords.some(keyword => d.Source.includes(keyword))
+  ), d => +d["Value(kKLOE)"]);
+  
+  const coalPercent = totalEnergy > 0 ? ((coalEnergy / totalEnergy) * 100).toFixed(1) : 0;
+  const renewablePercent = totalEnergy > 0 ? ((renewableEnergy / totalEnergy) * 100).toFixed(1) : 0;
+
+  // 更新統計顯示
+  d3.select("#totalEnergy").text(totalEnergy.toLocaleString());
+  d3.select("#coalPercent").text(coalPercent + "%");
+  d3.select("#renewablePercent").text(renewablePercent + "%");
+
+  const graphData = buildSankeyData(currentData);
+  
+  d3.select("#debug-nodes").text(graphData.nodes.length);
+  d3.select("#debug-links").text(graphData.links.length);
+  
+  // 手動設定 x 位置確保分層對齊
+  const layerX = {
+    0: 150,              // 能源來源
+    1: width / 2,        // 中間層（系統）
+    2: width - 170       // 部門
+  };
+  
+  graphData.nodes.forEach(n => {
+    n.fixedX = layerX[n.layer];
+  });
+  
+  const sankeyData = sankey(graphData);
+  
+  // 強制修正 x 位置
+  sankeyData.nodes.forEach(n => {
+    const targetX = layerX[n.layer];
+    n.x0 = targetX;
+    n.x1 = targetX + 20; // nodeWidth
+  });
+
+  // Links
+  svg.append("g")
+    .attr("fill", "none")
+    .selectAll("path")
+    .data(sankeyData.links)
+    .join("path")
+    .attr("d", d3.sankeyLinkHorizontal())
+    .attr("stroke", d => "#aaa")
+    .attr("stroke-width", d => Math.max(1, d.width))
+    .attr("class", "link");
+
+  // Nodes
+  const node = svg.append("g")
+    .selectAll("g")
+    .data(sankeyData.nodes)
+    .join("g")
+    .attr("class", "node");
+
+  node.append("rect")
+    .attr("x", d => d.x0)
+    .attr("y", d => d.y0)
+    .attr("height", d => d.y1 - d.y0)
+    .attr("width", d => d.x1 - d.x0)
+    .attr("fill", d => colorMap[d.name] || d3.schemeCategory10[d.index % 10])
+    .on("mousemove", (event, d) => {
+      const currentVal = d3.sum(currentData.filter(row => row.Source === d.name || row.Target === d.name),
+                               r => +r["Value(kKLOE)"]);
+      const prevVal = d3.sum(prevData.filter(row => row.Source === d.name || row.Target === d.name),
+                             r => +r["Value(kKLOE)"]);
+      const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
+      tooltip
+        .style("display", "block")
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY + 15) + "px")
+        .html(`
+          <strong>${d.name}</strong><br/>
+          ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
+          與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}
+        `);
+    })
+    .on("mouseout", () => tooltip.style("display", "none"));
+
+  node.append("text")
+    .attr("x", d => d.x0 - 6)
+    .attr("y", d => (d.y1 + d.y0) / 2)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", "end")
+    .text(d => d.name)
+    .filter(d => d.x0 < width / 2)
+    .attr("x", d => d.x1 + 6)
+    .attr("text-anchor", "start");
+}
+
+d3.select("#yearSlider").on("input", function() {
+  updateChart(+this.value);
+});
+
+loadAllCSV();
+</script>
+
 </body>
 </html>
