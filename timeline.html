@@ -47,6 +47,73 @@
       font-weight: bold;
       margin-bottom: 15px;
       opacity: 0.95;
+    }
+    #debug-info {
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: rgba(0,0,0,0.9);
+      color: #0f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: move;
+      max-width: 400px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    #debug-info div {
+      margin: 5px 0;
+    }
+    #debug-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #0f0;
+      padding-bottom: 5px;
+      cursor: move;
+    }
+    #debug-failed {
+      color: #ff6b6b;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(255,0,0,0.1);
+      border-radius: 4px;
+    }
+    #debug-yearly {
+      color: #ffa500;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(255,165,0,0.1);
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    #debug-sample {
+      color: #00bfff;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(0,191,255,0.1);
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    #debug-filter-detail {
+      color: #ff69b4;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 5px;
+      background: rgba(255,105,180,0.1);
+      border-radius: 4px;
+      font-size: 10px;
+    }
     #stats-grid {
       display: flex;
       justify-content: space-around;
@@ -128,6 +195,18 @@
   <div id="chart"></div>
   <div id="tooltip"></div>
   
+  <div id="debug-info">
+    <div id="debug-header">🔍 測試資訊 (可拖動)</div>
+    <div>當前讀取年份: <span id="debug-year">-</span></div>
+    <div>原始資料筆數: <span id="debug-raw-count">-</span></div>
+    <div>篩選後資料筆數: <span id="debug-count">-</span></div>
+    <div>節點數: <span id="debug-nodes">-</span></div>
+    <div>連結數: <span id="debug-links">-</span></div>
+    <div>已載入: <span id="debug-loaded">0</span></div>
+    <div id="debug-filter-detail"></div>
+    <div id="debug-sample"></div>
+    <div id="debug-failed"></div>
+    <div id="debug-yearly"></div>
   </div>
 
 <script>
@@ -178,7 +257,15 @@ async function loadAllCSV() {
   const failedYears = [];
   const yearlyInfo = [];
   
-
+  d3.select("#debug-failed").html("<strong>載入中...</strong>");
+  
+  for (const y of years) {
+    const rocYear = y - 1911;
+    const urls = [
+      `${csvBase}template${String(rocYear).padStart(3,"0")}.csv`,
+      `${csvBase}template${rocYear}.csv`
+    ];
+    
     let loaded = false;
     for (const url of urls) {
       try {
@@ -223,6 +310,45 @@ async function loadAllCSV() {
       yearlyInfo.push(`✗ ${y}: 載入失敗`);
     }
     
+    d3.select("#debug-loaded").text(`${loadedCount} / ${years.length}`);
+  }
+  
+  // 顯示失敗列表
+  if (failedYears.length > 0) {
+    const failedList = failedYears.map(y => `${y}(${y-1911})`).join(", ");
+    d3.select("#debug-failed").html(`<strong>載入失敗 (${failedYears.length}個):</strong><br/>${failedList}`);
+  } else {
+    d3.select("#debug-failed").html("<strong style='color:#0f0'>✓ 全部載入成功</strong>");
+  }
+  
+  // 顯示每年詳細資訊
+  d3.select("#debug-yearly").html(`<strong>各年份狀態:</strong><br/>${yearlyInfo.join("<br/>")}`);
+  
+  updateChart(1984);
+}
+
+// 拖動功能
+let isDragging = false;
+let currentX, currentY, initialX, initialY;
+
+const debugPanel = document.getElementById("debug-info");
+
+debugPanel.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  initialX = e.clientX - debugPanel.offsetLeft;
+  initialY = e.clientY - debugPanel.offsetTop;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (isDragging) {
+    e.preventDefault();
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+    debugPanel.style.left = currentX + "px";
+    debugPanel.style.top = currentY + "px";
+    debugPanel.style.right = "auto";
+  }
+});
 
 document.addEventListener("mouseup", () => {
   isDragging = false;
