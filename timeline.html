@@ -43,76 +43,21 @@
     }
     #stats-year {
       text-align: center;
-      font-size: 48px;
+      font-size: 36px;
       font-weight: bold;
       margin-bottom: 15px;
-      opacity: 0.95;
+      opacity: 0;
+      animation: fadeInUp 0.5s ease forwards;
     }
-    #debug-info {
-      position: fixed;
-      top: 100px;
-      right: 20px;
-      background: rgba(0,0,0,0.9);
-      color: #0f0;
-      padding: 15px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 12px;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      cursor: move;
-      max-width: 400px;
-      max-height: 500px;
-      overflow-y: auto;
-    }
-    #debug-info div {
-      margin: 5px 0;
-    }
-    #debug-header {
-      font-weight: bold;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #0f0;
-      padding-bottom: 5px;
-      cursor: move;
-    }
-    #debug-failed {
-      color: #ff6b6b;
-      max-height: 200px;
-      overflow-y: auto;
-      margin-top: 10px;
-      padding: 5px;
-      background: rgba(255,0,0,0.1);
-      border-radius: 4px;
-    }
-    #debug-yearly {
-      color: #ffa500;
-      max-height: 150px;
-      overflow-y: auto;
-      margin-top: 10px;
-      padding: 5px;
-      background: rgba(255,165,0,0.1);
-      border-radius: 4px;
-      font-size: 11px;
-    }
-    #debug-sample {
-      color: #00bfff;
-      max-height: 200px;
-      overflow-y: auto;
-      margin-top: 10px;
-      padding: 5px;
-      background: rgba(0,191,255,0.1);
-      border-radius: 4px;
-      font-size: 11px;
-    }
-    #debug-filter-detail {
-      color: #ff69b4;
-      max-height: 250px;
-      overflow-y: auto;
-      margin-top: 10px;
-      padding: 5px;
-      background: rgba(255,105,180,0.1);
-      border-radius: 4px;
-      font-size: 10px;
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 0.95;
+        transform: translateY(0);
+      }
     }
     #stats-grid {
       display: flex;
@@ -140,11 +85,92 @@
     .node rect {
       stroke: #333;
       cursor: pointer;
+      stroke-width: 2px;
     }
     .node text {
       font-size: 14px;
-      pointer-events: all;
       cursor: pointer;
+      pointer-events: all;
+    }
+    .node {
+      pointer-events: all;
+    }
+    /* 增加可點擊區域 */
+    .node-hitarea {
+      fill: transparent;
+      stroke: none;
+      cursor: pointer;
+    }
+    
+    /* 彈出視窗 */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.show {
+      display: flex;
+    }
+    #modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      max-width: 600px;
+      max-height: 70vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    #modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #ff4757;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-close:hover {
+      background: #ff3838;
+    }
+    #modal-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #667eea;
+    }
+    .subdept-item {
+      padding: 12px;
+      margin: 8px 0;
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .subdept-name {
+      font-weight: 500;
+      color: #333;
+    }
+    .subdept-value {
+      font-weight: bold;
+      color: #667eea;
     }
     .link {
       fill: none;
@@ -162,6 +188,11 @@
       display: none;
       pointer-events: none;
       box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+    
+    /* 顏色自訂面板 - 隱藏 */
+    #color-panel {
+      display: none;
     }
   </style>
 </head>
@@ -194,20 +225,6 @@
 
   <div id="chart"></div>
   <div id="tooltip"></div>
-  
-  <div id="debug-info">
-    <div id="debug-header">🔍 測試資訊 (可拖動)</div>
-    <div>當前讀取年份: <span id="debug-year">-</span></div>
-    <div>原始資料筆數: <span id="debug-raw-count">-</span></div>
-    <div>篩選後資料筆數: <span id="debug-count">-</span></div>
-    <div>節點數: <span id="debug-nodes">-</span></div>
-    <div>連結數: <span id="debug-links">-</span></div>
-    <div>已載入: <span id="debug-loaded">0</span></div>
-    <div id="debug-filter-detail"></div>
-    <div id="debug-sample"></div>
-    <div id="debug-failed"></div>
-    <div id="debug-yearly"></div>
-  </div>
 
 <script>
 const departments = ["工業部門","運輸部門","農業部門","服務業部門","住宅部門","轉換效率損失"];
@@ -224,41 +241,66 @@ const sankey = d3.sankey()
   .extent([[150, 50], [width - 150, height - 50]])
   .nodeAlign(d3.sankeyLeft)
   .nodeSort((a, b) => {
-    // 先按層級排序
     if (a.layer !== b.layer) return a.layer - b.layer;
-    // 同層級按名稱排序
     return a.name.localeCompare(b.name);
   });
 
-// 顏色對應表
+// ========================================
+// 顏色對應表 - 請在這裡自訂顏色（16進位色碼）
+// ========================================
 const colorMap = {
-  "煤及煤產品": "#444",
+  // 能源來源
+  "煤及煤產品": "#444444",
   "原油及石油產品": "#a0522d",
   "天然氣": "#4682b4",
+  "核能": "#ff6b35",
+  "水力": "#1e90ff",
+  "地熱": "#dc143c",
+  "太陽光電": "#ffa500",
+  "風力": "#00ced1",
+  "生質能及廢棄物": "#8b4513",
   "再生能源": "#2e8b57",
+  
+  // 中間層（系統/製造與分銷）
   "電力系統": "#1e90ff",
-  "原油及石油的製造與分銷": "#ffb4c3",
-  "工業部門": "#ade6e7",
+  "煤炭的製造與分銷": "#696969",
+  "原油及石油的製造與分銷": "#8b4513",
+  "天然氣的生產與分銷": "#5f9ea0",
+  "能源部門自用": "#bcbcbc",
+  "電網損耗": "#8c8c8c",
+  
+  // 最終部門
+  "工業部門": "#1f77b4",
   "運輸部門": "#ff7f0e",
   "住宅部門": "#2ca02c",
   "服務業部門": "#d62728",
-  "農業部門": "#6e7e3e",
-  "轉換效率損失": "#e7bc9f"
+  "農業部門": "#9467bd",
+  "轉換效率損失": "#7f7f7f",
+  "非能源消費": "#aaaaaa"
 };
+// ========================================
 
-// URL
+// 建立顏色選擇器
+function createColorPicker() {
+  const colorList = d3.select("#color-list");
+  Object.keys(colorMap).forEach(name => {
+    const item = colorList.append("div").attr("class", "color-item");
+    item.append("label").text(name);
+    item.append("input")
+      .attr("type", "color")
+      .attr("value", colorMap[name])
+      .on("change", function() {
+        colorMap[name] = this.value;
+        updateChart(+d3.select("#yearSlider").property("value"));
+      });
+  });
+}
+
 const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
 const years = d3.range(1984, 2025);
-const fileMap = Object.fromEntries(years.map(y => [y, `${csvBase}template${String(y-1911).padStart(3,"0")}.csv`]));
 let dataByYear = {};
 
 async function loadAllCSV() {
-  let loadedCount = 0;
-  const failedYears = [];
-  const yearlyInfo = [];
-  
-  d3.select("#debug-failed").html("<strong>載入中...</strong>");
-  
   for (const y of years) {
     const rocYear = y - 1911;
     const urls = [
@@ -266,19 +308,14 @@ async function loadAllCSV() {
       `${csvBase}template${rocYear}.csv`
     ];
     
-    let loaded = false;
     for (const url of urls) {
       try {
-        // 嘗試不同編碼
         const response = await fetch(url);
         if (!response.ok) continue;
         
-        // 先嘗試 UTF-8
         let text = await response.text();
         
-        // 檢查是否有亂碼（Big5 誤讀為 UTF-8 會有特定符號）
         if (text.includes('�') || text.match(/[\u0080-\u009F]/)) {
-          // 重新用 Big5 讀取
           const blob = await (await fetch(url)).blob();
           text = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -287,121 +324,47 @@ async function loadAllCSV() {
           });
         }
         
-        // 解析 CSV
         const data = d3.csvParse(text);
-        
         if (data && data.length > 0) {
           dataByYear[y] = data;
-          loadedCount++;
-          loaded = true;
-          
-          const filtered = filterDepartmentLevel(data);
-          const status = filtered.length > 0 ? "✓" : "⚠️";
-          yearlyInfo.push(`${status} ${y}: 原始${data.length}筆 → 篩選${filtered.length}筆`);
           break;
         }
       } catch (e) {
         // 繼續嘗試
       }
     }
-    
-    if (!loaded) {
-      failedYears.push(y);
-      yearlyInfo.push(`✗ ${y}: 載入失敗`);
-    }
-    
-    d3.select("#debug-loaded").text(`${loadedCount} / ${years.length}`);
   }
   
-  // 顯示失敗列表
-  if (failedYears.length > 0) {
-    const failedList = failedYears.map(y => `${y}(${y-1911})`).join(", ");
-    d3.select("#debug-failed").html(`<strong>載入失敗 (${failedYears.length}個):</strong><br/>${failedList}`);
-  } else {
-    d3.select("#debug-failed").html("<strong style='color:#0f0'>✓ 全部載入成功</strong>");
-  }
-  
-  // 顯示每年詳細資訊
-  d3.select("#debug-yearly").html(`<strong>各年份狀態:</strong><br/>${yearlyInfo.join("<br/>")}`);
-  
+  createColorPicker();
   updateChart(1984);
 }
 
-// 拖動功能
-let isDragging = false;
-let currentX, currentY, initialX, initialY;
-
-const debugPanel = document.getElementById("debug-info");
-
-debugPanel.addEventListener("mousedown", (e) => {
-  isDragging = true;
-  initialX = e.clientX - debugPanel.offsetLeft;
-  initialY = e.clientY - debugPanel.offsetTop;
-});
-
-document.addEventListener("mousemove", (e) => {
-  if (isDragging) {
-    e.preventDefault();
-    currentX = e.clientX - initialX;
-    currentY = e.clientY - initialY;
-    debugPanel.style.left = currentX + "px";
-    debugPanel.style.top = currentY + "px";
-    debugPanel.style.right = "auto";
-  }
-});
-
-document.addEventListener("mouseup", () => {
-  isDragging = false;
-});
-
 function filterDepartmentLevel(data) {
-  const logs = [];
-  const filtered = data.filter(d => {
-    if (!d.Source || !d.Target) {
-      logs.push(`✗ 空值: ${d.Source || '?'} → ${d.Target || '?'}`);
-      return false;
-    }
+  return data.filter(d => {
+    if (!d.Source || !d.Target) return false;
     
-    // 目標是部門
-    if (departments.includes(d.Target)) {
-      logs.push(`✓ 部門: ${d.Source} → ${d.Target}`);
-      return true;
-    }
+    // 檢查值是否為有效數字且大於0
+    const valueStr = d["Value(kKLOE)"];
+    if (!valueStr) return false;
     
-    // 目標包含"系統"或"製造與分銷"或"生產與分銷"
+    const value = parseFloat(valueStr);
+    if (isNaN(value) || value <= 0) return false;
+    
+    if (departments.includes(d.Target)) return true;
+    
     if (d.Target.includes("系統") || 
         d.Target.includes("製造與分銷") || 
-        d.Target.includes("生產與分銷")) {
-      logs.push(`✓ 中間層: ${d.Source} → ${d.Target}`);
-      return true;
-    }
+        d.Target.includes("生產與分銷") ||
+        d.Target.includes("能源部門自用") ||
+        d.Target.includes("電網損耗")) return true;
     
-    // 來源是電力系統（保留所有電力系統的流向）
-    if (d.Source.includes("電力系統") || d.Source.includes("系統")) {
-      logs.push(`✓ 電力系統: ${d.Source} → ${d.Target}`);
-      return true;
-    }
+    if (d.Source.includes("電力系統") || d.Source.includes("系統")) return true;
     
-    // 來源是主要能源
     const sourceKeywords = ["煤", "原油", "石油", "天然氣", "核能", "水力", "地熱", "太陽", "風力", "生質"];
-    if (sourceKeywords.some(keyword => d.Source.includes(keyword))) {
-      logs.push(`✓ 能源: ${d.Source} → ${d.Target}`);
-      return true;
-    }
+    if (sourceKeywords.some(keyword => d.Source.includes(keyword))) return true;
     
-    logs.push(`✗ 篩掉: ${d.Source} → ${d.Target}`);
     return false;
   });
-  
-  // 顯示篩選日誌（只顯示前20筆和被篩掉的前10筆）
-  const kept = logs.filter(l => l.startsWith('✓')).slice(0, 20);
-  const removed = logs.filter(l => l.startsWith('✗')).slice(0, 10);
-  d3.select("#debug-filter-detail").html(
-    `<strong>保留 (前20筆):</strong><br/>${kept.join('<br/>')}<br/><br/>` +
-    `<strong>篩掉 (前10筆):</strong><br/>${removed.join('<br/>')}`
-  );
-  
-  return filtered;
 }
 
 function buildSankeyData(data) {
@@ -413,20 +376,16 @@ function buildSankeyData(data) {
     value: +d["Value(kKLOE)"]
   }));
 
-  // 分層控制
   nodes.forEach(n => {
-    // 能源來源層
     if (energySources.some(s => n.name.includes(s.substring(0, 3))) ||
         n.name.includes("核能") || n.name.includes("水力") || 
         n.name.includes("地熱") || n.name.includes("太陽") || 
         n.name.includes("風力") || n.name.includes("生質")) {
       n.layer = 0;
     } 
-    // 部門層
     else if (departments.includes(n.name)) {
       n.layer = 2;
     } 
-    // 中間層（系統、製造與分銷等）
     else {
       n.layer = 1;
     }
@@ -436,81 +395,55 @@ function buildSankeyData(data) {
 }
 
 function updateChart(year) {
+  // 重新觸發動畫
+  const yearElement = d3.select("#stats-year");
+  yearElement.style("animation", "none");
+  setTimeout(() => {
+    yearElement.text(year).style("animation", "fadeInUp 0.5s ease forwards");
+  }, 10);
+  
   d3.select("#yearDisplay").text(year);
-  d3.select("#stats-year").text(year);
-  d3.select("#debug-year").text(year);
   
   svg.selectAll("*").remove();
 
   const rawData = dataByYear[year] || [];
   const currentData = filterDepartmentLevel(rawData);
   const prevData = filterDepartmentLevel(dataByYear[year - 1] || []);
-  
-  d3.select("#debug-raw-count").text(rawData.length);
-  d3.select("#debug-count").text(currentData.length);
 
-  // 顯示資料樣本
-  if (rawData.length > 0) {
-    const sample = rawData.slice(0, 3);
-    const sampleText = sample.map(d => 
-      `${d.Source || '?'} → ${d.Target || '?'} (${d["Value(kKLOE)"] || '?'})`
-    ).join("<br/>");
-    
-    const uniqueSources = [...new Set(rawData.map(d => d.Source))].slice(0, 10).join(", ");
-    const uniqueTargets = [...new Set(rawData.map(d => d.Target))].slice(0, 10).join(", ");
-    
-    d3.select("#debug-sample").html(
-      `<strong>資料樣本:</strong><br/>${sampleText}<br/><br/>` +
-      `<strong>來源類型:</strong><br/>${uniqueSources}<br/><br/>` +
-      `<strong>目標類型:</strong><br/>${uniqueTargets}`
-    );
-  }
-
-  if (!currentData.length) {
-    d3.select("#debug-nodes").text("0");
-    d3.select("#debug-links").text("0");
-    console.warn(`${year}: 篩選後無資料可顯示`);
-    return;
-  }
+  if (!currentData.length) return;
 
   // 計算統計數據
   const allData = dataByYear[year] || [];
   
-  // 總能源供給：所有能源來源的總和
   const energySourceKeywords = ["煤", "原油", "石油", "天然氣", "核能", "水力", "地熱", "太陽", "風力", "生質", "潮汐"];
   const totalEnergy = d3.sum(allData.filter(d => 
-    energySourceKeywords.some(keyword => d.Source && d.Source.includes(keyword))
+    energySourceKeywords.some(keyword => d.Source && d.Source.includes(keyword)) &&
+    +d["Value(kKLOE)"] > 0
   ), d => +d["Value(kKLOE)"]);
   
-  // 煤炭佔比：所有包含"煤"的來源
   const coalEnergy = d3.sum(allData.filter(d => 
-    d.Source && d.Source.includes("煤")
+    d.Source && d.Source.includes("煤") && +d["Value(kKLOE)"] > 0
   ), d => +d["Value(kKLOE)"]);
   
-  // 再生能源佔比：太陽能、風力、地熱、水力、潮汐、生質能
-  const renewableKeywords = ["太陽", "風力", "地熱", "水力", "潮汐", "生質"];
+  const renewableKeywords = ["水力", "地熱", "太陽", "風力"];
   const renewableEnergy = d3.sum(allData.filter(d => 
-    d.Source && renewableKeywords.some(keyword => d.Source.includes(keyword))
+    d.Source && renewableKeywords.some(keyword => d.Source.includes(keyword)) &&
+    +d["Value(kKLOE)"] > 0
   ), d => +d["Value(kKLOE)"]);
   
   const coalPercent = totalEnergy > 0 ? ((coalEnergy / totalEnergy) * 100).toFixed(1) : 0;
   const renewablePercent = totalEnergy > 0 ? ((renewableEnergy / totalEnergy) * 100).toFixed(1) : 0;
 
-  // 更新統計顯示
   d3.select("#totalEnergy").text(totalEnergy.toLocaleString());
   d3.select("#coalPercent").text(coalPercent + "%");
   d3.select("#renewablePercent").text(renewablePercent + "%");
 
   const graphData = buildSankeyData(currentData);
   
-  d3.select("#debug-nodes").text(graphData.nodes.length);
-  d3.select("#debug-links").text(graphData.links.length);
-  
-  // 手動設定 x 位置確保分層對齊
   const layerX = {
-    0: 150,              // 能源來源
-    1: width / 2,        // 中間層（系統）
-    2: width - 250       // 部門（增加右側留白）
+    0: 150,
+    1: width / 2,
+    2: width - 250
   };
   
   graphData.nodes.forEach(n => {
@@ -519,11 +452,10 @@ function updateChart(year) {
   
   const sankeyData = sankey(graphData);
   
-  // 強制修正 x 位置
   sankeyData.nodes.forEach(n => {
     const targetX = layerX[n.layer];
     n.x0 = targetX;
-    n.x1 = targetX + 20; // nodeWidth
+    n.x1 = targetX + 20;
   });
 
   // Links
@@ -544,58 +476,48 @@ function updateChart(year) {
     .join("g")
     .attr("class", "node");
 
+  // 實際顯示的方塊
   node.append("rect")
     .attr("x", d => d.x0)
     .attr("y", d => d.y0)
     .attr("height", d => d.y1 - d.y0)
     .attr("width", d => d.x1 - d.x0)
-    .attr("fill", d => colorMap[d.name] || d3.schemeCategory10[d.index % 10])
-    .on("mousemove", (event, d) => {
-      const currentVal = d3.sum(currentData.filter(row => row.Source === d.name || row.Target === d.name),
-                               r => +r["Value(kKLOE)"]);
-      const prevVal = d3.sum(prevData.filter(row => row.Source === d.name || row.Target === d.name),
-                             r => +r["Value(kKLOE)"]);
-      const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
-      tooltip
-        .style("display", "block")
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY + 15) + "px")
-        .html(`
-          <strong>${d.name}</strong><br/>
-          ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
-          與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}
-        `);
-    })
-    .on("mouseout", () => tooltip.style("display", "none"));
+    .attr("fill", d => colorMap[d.name] || d3.schemeCategory10[d.index % 10]);
 
-  node.append("text")
-    .attr("x", d => d.x0 - 6)
+  // 增加透明的可點擊區域（擴大點擊範圍，放在方塊之後）
+  node.append("rect")
+    .attr("class", "node-hitarea")
+    .attr("x", d => d.x0 - 10)
+    .attr("y", d => d.y0 - 5)
+    .attr("height", d => (d.y1 - d.y0) + 10)
+    .attr("width", d => (d.x1 - d.x0) + 20);
+
+  // 文字
+  const textElements = node.append("text")
+    .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
     .attr("y", d => (d.y1 + d.y0) / 2)
     .attr("dy", "0.35em")
-    .attr("text-anchor", "end")
-    .text(d => d.name)
-    .style("pointer-events", "all")
-    .style("cursor", "pointer")
-    .filter(d => d.x0 < width / 2)
-    .attr("x", d => d.x1 + 6)
-    .attr("text-anchor", "start")
-    .on("mousemove", function(event, d) {
-      const currentVal = d3.sum(currentData.filter(row => row.Source === d.name || row.Target === d.name),
-                               r => +r["Value(kKLOE)"]);
-      const prevVal = d3.sum(prevData.filter(row => row.Source === d.name || row.Target === d.name),
+    .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+    .text(d => d.name);
+
+  // 為整個節點組添加事件
+  node.on("mousemove", (event, d) => {
+    const currentVal = d3.sum(currentData.filter(row => row.Source === d.name || row.Target === d.name),
                              r => +r["Value(kKLOE)"]);
-      const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
-      tooltip
-        .style("display", "block")
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY + 15) + "px")
-        .html(`
-          <strong>${d.name}</strong><br/>
-          ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
-          與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}
-        `);
-    })
-    .on("mouseout", () => tooltip.style("display", "none"));
+    const prevVal = d3.sum(prevData.filter(row => row.Source === d.name || row.Target === d.name),
+                           r => +r["Value(kKLOE)"]);
+    const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
+    tooltip
+      .style("display", "block")
+      .style("left", (event.pageX + 15) + "px")
+      .style("top", (event.pageY + 15) + "px")
+      .html(`
+        <strong>${d.name}</strong><br/>
+        ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
+        與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}
+      `);
+  })
+  .on("mouseout", () => tooltip.style("display", "none"));
 }
 
 d3.select("#yearSlider").on("input", function() {
