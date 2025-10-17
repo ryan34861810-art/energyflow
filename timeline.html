@@ -2,12 +2,13 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>能源流視覺化 - Timeline</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
   <style>
     body {
-      font-family: "Noto Sans TC", sans-serif;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       margin: 0;
       background-color: #f5f5f5;
     }
@@ -15,12 +16,91 @@
       padding: 15px 30px;
       background: #fff;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 15px;
       position: sticky;
       top: 0;
       z-index: 10;
+    }
+    #events-display {
+      position: relative;
+      height: 60px;
+      margin-bottom: 5px;
+    }
+    .event-item {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      animation: eventFadeIn 0.4s ease;
+      top: 0;
+    }
+    @keyframes eventFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .event-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .event-bar {
+      height: 8px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 4px;
+      width: 100%;
+      position: relative;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+    .event-bar::before,
+    .event-bar::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #667eea;
+      border-radius: 50%;
+      top: -2px;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .event-bar::before {
+      left: -6px;
+    }
+    .event-bar::after {
+      right: -6px;
+      background: #764ba2;
+    }
+    .event-years {
+      font-size: 11px;
+      color: #999;
+      white-space: nowrap;
+    }
+    #slider-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+      position: relative;
+    }
+    #slider-container label {
+      white-space: nowrap;
+    }
+    #slider-container #yearSlider {
+      flex: 1;
+      min-width: 200px;
+    }
+    #slider-container #yearDisplay {
+      font-size: 20px;
+      font-weight: bold;
+      min-width: 60px;
     }
     #timeline-container label {
       white-space: nowrap;
@@ -41,13 +121,17 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       position: relative;
     }
+    #stats-grid {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      gap: 30px;
+    }
     #stats-year {
-      text-align: center;
-      font-size: 36px;
-      font-weight: bold;
-      margin-bottom: 15px;
       opacity: 0;
       animation: fadeInUp 0.5s ease forwards;
+      font-weight: 300;
+      font-size: 42px;
     }
     @keyframes fadeInUp {
       from {
@@ -59,18 +143,12 @@
         transform: translateY(0);
       }
     }
-    #stats-grid {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      gap: 30px;
-    }
     .stat-item {
       text-align: center;
       flex: 1;
     }
     .stat-value {
-      font-size: 32px;
+      font-size: 36px;
       font-weight: bold;
       margin: 5px 0;
     }
@@ -81,96 +159,28 @@
     #chart {
       width: 100%;
       height: 80vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .node rect {
       stroke: #333;
-      cursor: pointer;
       stroke-width: 2px;
     }
     .node text {
       font-size: 14px;
-      cursor: pointer;
       pointer-events: all;
+    }
+    .node.clickable text {
+      font-weight: bold;
+      fill: #ff6b35;
     }
     .node {
       pointer-events: all;
     }
-    /* 增加可點擊區域 */
     .node-hitarea {
       fill: transparent;
-      stroke: none;
-      cursor: pointer;
-    }
-    
-    /* 彈出視窗 */
-    #modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-    #modal-overlay.show {
-      display: flex;
-    }
-    #modal-content {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-      max-width: 600px;
-      max-height: 70vh;
-      overflow-y: auto;
-      position: relative;
-    }
-    #modal-close {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: #ff4757;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      font-size: 20px;
-      cursor: pointer;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #modal-close:hover {
-      background: #ff3838;
-    }
-    #modal-title {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 20px;
-      color: #667eea;
-    }
-    .subdept-item {
-      padding: 12px;
-      margin: 8px 0;
-      background: #f8f9fa;
-      border-left: 4px solid #667eea;
-      border-radius: 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .subdept-name {
-      font-weight: 500;
-      color: #333;
-    }
-    .subdept-value {
-      font-weight: bold;
-      color: #667eea;
+      stroke-opacity: 0;
     }
     .link {
       fill: none;
@@ -188,25 +198,118 @@
       display: none;
       pointer-events: none;
       box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      z-index: 1001;
     }
     
-    /* 顏色自訂面板 - 隱藏 */
-    #color-panel {
+    #modal-overlay {
       display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #modal-content {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      width: 85%;
+      max-width: 1400px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: modalFadeIn 0.3s ease;
+    }
+    
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    #modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      width: 35px;
+      height: 35px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+      z-index: 10;
+    }
+    
+    #modal-close:hover {
+      background: #000;
+    }
+    
+    #modal-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #333;
+      padding-right: 50px;
+    }
+    
+    #modal-sankey {
+      width: 100%;
+      height: 600px;
+      margin-top: 20px;
+    }
+    
+    .modal-link {
+      cursor: pointer;
+    }
+    
+    .modal-link:hover {
+      fill-opacity: 0.7 !important;
+    }
+    
+    .modal-node rect {
+      stroke: #333;
+      stroke-width: 2px;
+    }
+    
+    .modal-node text {
+      font-size: 13px;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
 
   <div id="timeline-container">
-    <label for="yearSlider">年份：</label>
-    <input type="range" id="yearSlider" min="1984" max="2024" value="1984" step="1" />
-    <span id="yearDisplay">1984</span>
+    <div id="events-display"></div>
+    <div id="slider-container">
+      <label for="yearSlider">年份：</label>
+      <input type="range" id="yearSlider" name="yearSlider" min="1984" max="2024" value="1984" step="1" />
+      <span id="yearDisplay">1984</span>
+    </div>
   </div>
 
   <div id="stats-container">
-    <div id="stats-year">1984</div>
     <div id="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value" id="stats-year">1984</div>
+      </div>
       <div class="stat-item">
         <div class="stat-label">總能源供給</div>
         <div class="stat-value" id="totalEnergy">-</div>
@@ -225,34 +328,43 @@
 
   <div id="chart"></div>
   <div id="tooltip"></div>
+  
+  <div id="modal-overlay">
+    <div id="modal-content">
+      <button id="modal-close" type="button">×</button>
+      <div id="modal-title"></div>
+      <div id="modal-sankey"></div>
+    </div>
+  </div>
 
 <script>
+const clickableDepartments = ["工業部門","運輸部門","農業部門","服務業部門","住宅部門"];
 const departments = ["工業部門","運輸部門","農業部門","服務業部門","住宅部門","轉換效率損失"];
 const energySources = ["煤及煤產品","原油及石油產品","天然氣","再生能源"];
 const chart = d3.select("#chart");
 const tooltip = d3.select("#tooltip");
-const width = window.innerWidth;
-const height = window.innerHeight * 0.8;
+const modalOverlay = d3.select("#modal-overlay");
+const modalTitle = d3.select("#modal-title");
+const modalSankey = d3.select("#modal-sankey");
+const modalClose = d3.select("#modal-close");
+const width = window.innerWidth * 0.95;
+const height = window.innerHeight * 0.75;
 const svg = chart.append("svg").attr("width", width).attr("height", height);
 
 const sankey = d3.sankey()
-  .nodeWidth(20)
-  .nodePadding(20)
-  .extent([[150, 50], [width - 150, height - 50]])
+  .nodeWidth(25)
+  .nodePadding(25)
+  .extent([[200, 80], [width - 200, height - 80]])
   .nodeAlign(d3.sankeyLeft)
   .nodeSort((a, b) => {
     if (a.layer !== b.layer) return a.layer - b.layer;
     return a.name.localeCompare(b.name);
   });
 
-// ========================================
-// 顏色對應表 - 請在這裡自訂顏色（16進位色碼）
-// ========================================
 const colorMap = {
-  // 能源來源
-  "煤及煤產品": "#444444",
-  "原油及石油產品": "#a0522d",
-  "天然氣": "#4682b4",
+  "煤及煤產品": "#ffb4c3",
+  "原油及石油產品": "#ade6e7",
+  "天然氣": "#dcdda3",
   "核能": "#ff6b35",
   "水力": "#1e90ff",
   "地熱": "#dc143c",
@@ -260,16 +372,12 @@ const colorMap = {
   "風力": "#00ced1",
   "生質能及廢棄物": "#8b4513",
   "再生能源": "#2e8b57",
-  
-  // 中間層（系統/製造與分銷）
   "電力系統": "#1e90ff",
-  "煤炭的製造與分銷": "#696969",
-  "原油及石油的製造與分銷": "#8b4513",
-  "天然氣的生產與分銷": "#5f9ea0",
+  "煤炭的製造與分銷": "#ffb4c3",
+  "原油及石油的製造與分銷": "#ade6e7",
+  "天然氣的生產與分銷": "#dcdda3",
   "能源部門自用": "#bcbcbc",
   "電網損耗": "#8c8c8c",
-  
-  // 最終部門
   "工業部門": "#1f77b4",
   "運輸部門": "#ff7f0e",
   "住宅部門": "#2ca02c",
@@ -278,29 +386,323 @@ const colorMap = {
   "轉換效率損失": "#7f7f7f",
   "非能源消費": "#aaaaaa"
 };
-// ========================================
 
-// 建立顏色選擇器
-function createColorPicker() {
-  const colorList = d3.select("#color-list");
-  Object.keys(colorMap).forEach(name => {
-    const item = colorList.append("div").attr("class", "color-item");
-    item.append("label").text(name);
-    item.append("input")
-      .attr("type", "color")
-      .attr("value", colorMap[name])
-      .on("change", function() {
-        colorMap[name] = this.value;
-        updateChart(+d3.select("#yearSlider").property("value"));
-      });
+function showDepartmentModal(departmentName, year) {
+  const rawData = dataByYear[year] || [];
+  
+  const subItems = rawData.filter(d => {
+    if (!d.Target || !d.Source) return false;
+    
+    const valueStr = d["Value(kKLOE)"];
+    if (!valueStr) return false;
+    
+    const value = parseFloat(valueStr);
+    if (isNaN(value) || value <= 0) return false;
+    
+    return d.Source === departmentName;
   });
+  
+  modalTitle.text(`${departmentName}詳細能源流 (${year})`);
+  modalSankey.html("");
+  
+  modalOverlay.style("display", "flex");
+  
+  if (subItems.length === 0) {
+    modalSankey.append("div")
+      .style("text-align", "center")
+      .style("padding", "50px")
+      .style("color", "#999")
+      .style("font-size", "16px")
+      .html(`此部門無詳細能源輸出流向資料<br/><small style="color: #ccc; margin-top: 10px; display: block;">（可能所有能源都直接在部門內消耗）</small>`);
+    return;
+  }
+  
+  const sankeyNodes = [];
+  const sankeyLinks = [];
+  const nodeMap = new Map();
+  
+  let nodeIndex = 0;
+  
+  const sources = new Set();
+  const targets = new Set();
+  
+  subItems.forEach(d => {
+    sources.add(d.Source);
+    targets.add(d.Target);
+  });
+  
+  sources.forEach(source => {
+    sankeyNodes.push({ name: source, layer: 0 });
+    nodeMap.set(source, nodeIndex++);
+  });
+  
+  targets.forEach(target => {
+    sankeyNodes.push({ name: target, layer: 1 });
+    nodeMap.set(target, nodeIndex++);
+  });
+  
+  subItems.forEach(d => {
+    if (nodeMap.has(d.Source) && nodeMap.has(d.Target)) {
+      sankeyLinks.push({
+        source: nodeMap.get(d.Source),
+        target: nodeMap.get(d.Target),
+        value: +d["Value(kKLOE)"]
+      });
+    }
+  });
+  
+  if (sankeyLinks.length === 0) {
+    modalSankey.append("div")
+      .style("text-align", "center")
+      .style("padding", "50px")
+      .style("color", "#999")
+      .text("無有效連結資料");
+    return;
+  }
+  
+  setTimeout(() => {
+    const modalWidth = modalSankey.node().offsetWidth;
+    const modalHeight = 600;
+    
+    if (modalWidth === 0) {
+      modalSankey.append("div")
+        .style("text-align", "center")
+        .style("padding", "50px")
+        .style("color", "#f00")
+        .text("視窗寬度錯誤，無法渲染圖表");
+      return;
+    }
+    
+    const modalSvg = modalSankey.append("svg")
+      .attr("width", modalWidth)
+      .attr("height", modalHeight);
+    
+    const leftX = 100;
+    const rightX = modalWidth - 150;
+    const subItemPadding = 20;
+    
+    const totalValue = d3.sum(sankeyLinks, l => l.value);
+    const availableHeight = modalHeight - 80;
+    const totalPadding = subItemPadding * (sankeyNodes.filter(n => n.layer === 1).length - 1);
+    const usableHeight = availableHeight - totalPadding;
+    const heightScale = usableHeight / totalValue;
+    
+    sankeyNodes.forEach(n => {
+      if (n.layer === 0) {
+        const outgoingValue = d3.sum(sankeyLinks.filter(l => sankeyNodes[l.source].name === n.name), l => l.value);
+        const nodeHeight = outgoingValue * heightScale;
+        
+        n.x0 = leftX;
+        n.x1 = leftX + 25;
+        n.y0 = (modalHeight - nodeHeight) / 2;
+        n.y1 = n.y0 + nodeHeight;
+      }
+    });
+    
+    const rightNodes = sankeyNodes.filter(n => n.layer === 1);
+    let currentY = 40;
+    
+    rightNodes.forEach((n, i) => {
+      const incomingValue = d3.sum(sankeyLinks.filter(l => sankeyNodes[l.target].name === n.name), l => l.value);
+      const nodeHeight = incomingValue * heightScale;
+      
+      n.x0 = rightX;
+      n.x1 = rightX + 25;
+      n.y0 = currentY;
+      n.y1 = currentY + nodeHeight;
+      currentY += nodeHeight + subItemPadding;
+    });
+    
+    // 按目標節點的 y 位置排序連結，確保連結順序正確
+    sankeyLinks.sort((a, b) => {
+      const targetA = sankeyNodes[a.target];
+      const targetB = sankeyNodes[b.target];
+      return targetA.y0 - targetB.y0;
+    });
+    
+    const nodeOffsets = new Map();
+    sankeyNodes.forEach(n => {
+      nodeOffsets.set(n.name, { source: n.y0, target: n.y0 });
+    });
+    
+    const sankeyLinks2 = sankeyLinks.map(link => {
+      const source = sankeyNodes[link.source];
+      const target = sankeyNodes[link.target];
+      const linkHeight = link.value * heightScale;
+      
+      const sourceOffset = nodeOffsets.get(source.name);
+      const targetOffset = nodeOffsets.get(target.name);
+      
+      const result = {
+        source: source,
+        target: target,
+        value: link.value,
+        y0: sourceOffset.source + linkHeight / 2,
+        y1: targetOffset.target + linkHeight / 2,
+        width: linkHeight
+      };
+      
+      sourceOffset.source += linkHeight;
+      targetOffset.target += linkHeight;
+      
+      return result;
+    });
+    
+    const departmentNode = sankeyNodes.find(n => n.layer === 0);
+    const linkColor = colorMap[departmentNode.name] || "#999";
+    
+    modalSvg.append("g")
+      .selectAll("path")
+      .data(sankeyLinks2)
+      .join("path")
+      .attr("class", "modal-link")
+      .attr("d", d => {
+        const x0 = d.source.x1;
+        const x1 = d.target.x0;
+        const y0 = d.y0;
+        const y1 = d.y1;
+        const hw = d.width / 2;
+        const xi = d3.interpolateNumber(x0, x1);
+        const x2 = xi(0.5);
+        
+        return `M${x0},${y0 - hw} C${x2},${y0 - hw} ${x2},${y1 - hw} ${x1},${y1 - hw} L${x1},${y1 + hw} C${x2},${y1 + hw} ${x2},${y0 + hw} ${x0},${y0 + hw} Z`;
+      })
+      .attr("fill", linkColor)
+      .attr("fill-opacity", 0.5);
+    
+    const node = modalSvg.append("g")
+      .selectAll("g")
+      .data(sankeyNodes)
+      .join("g")
+      .attr("class", "modal-node");
+    
+    node.append("rect")
+      .attr("x", d => d.x0)
+      .attr("y", d => d.y0)
+      .attr("height", d => d.y1 - d.y0)
+      .attr("width", d => d.x1 - d.x0)
+      .attr("fill", linkColor);
+    
+    node.append("text")
+      .attr("x", d => d.x0 < modalWidth / 2 ? d.x1 + 6 : d.x0 - 6)
+      .attr("y", d => (d.y1 + d.y0) / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", d => d.x0 < modalWidth / 2 ? "start" : "end")
+      .text(d => d.name)
+      .style("font-size", "15px")
+      .each(function(d) {
+        const self = d3.select(this);
+        const textLength = self.node().getComputedTextLength();
+        const availableWidth = d.x0 < modalWidth / 2 ? modalWidth - d.x1 - 20 : d.x0 - 20;
+        
+        if (textLength > availableWidth) {
+          let text = d.name;
+          while (self.node().getComputedTextLength() > availableWidth && text.length > 0) {
+            text = text.slice(0, -1);
+            self.text(text + "...");
+          }
+        }
+      });
+    
+    node.on("mousemove", (event, d) => {
+      const value = d3.sum(sankeyLinks.filter(l => 
+        sankeyNodes[l.source].name === d.name || sankeyNodes[l.target].name === d.name
+      ), l => l.value);
+      const percentage = ((value / totalValue) * 100).toFixed(1);
+      
+      tooltip
+        .style("display", "block")
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY + 15) + "px")
+        .html(`<strong>${d.name}</strong><br/>數值：${value.toLocaleString()} kKLOE<br/>佔比：${percentage}%`);
+    })
+    .on("mouseout", () => tooltip.style("display", "none"));
+  }, 50);
 }
+
+function closeModal() {
+  modalOverlay.style("display", "none");
+}
+
+modalClose.on("click", closeModal);
+modalOverlay.on("click", function(event) {
+  if (event.target === modalOverlay.node()) {
+    closeModal();
+  }
+});
 
 const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
 const years = d3.range(1984, 2025);
 let dataByYear = {};
+let eventsData = [];
+
+// 載入事件資料的函數
+async function loadEvents() {
+  try {
+    const response = await fetch(`${csvBase}events.csv`);
+    if (response.ok) {
+      const text = await response.text();
+      eventsData = d3.csvParse(text);
+      console.log('Events loaded:', eventsData);
+    }
+  } catch (e) {
+    console.log('No events file found or error loading events:', e);
+  }
+}
+
+// 更新事件顯示
+function updateEventsDisplay(year) {
+  const eventsDisplay = d3.select("#events-display");
+  eventsDisplay.html("");
+  
+  if (!eventsData || eventsData.length === 0) return;
+  
+  const activeEvents = eventsData.filter(e => {
+    const start = +e.start;
+    const end = +e.end;
+    return year >= start && year <= end;
+  });
+  
+  // 取得滑桿的實際寬度和位置
+  const slider = document.getElementById("yearSlider");
+  const sliderRect = slider.getBoundingClientRect();
+  const sliderWidth = slider.offsetWidth;
+  const minYear = +slider.min;
+  const maxYear = +slider.max;
+  const yearRange = maxYear - minYear;
+  
+  activeEvents.forEach((event, index) => {
+    const start = +event.start;
+    const end = +event.end;
+    
+    // 計算事件條的位置和寬度（相對於滑桿）
+    const startPercent = ((start - minYear) / yearRange) * 100;
+    const endPercent = ((end - minYear) / yearRange) * 100;
+    const widthPercent = endPercent - startPercent;
+    
+    const eventItem = eventsDisplay.append("div")
+      .attr("class", "event-item")
+      .style("left", `${startPercent}%`)
+      .style("width", `${widthPercent}%`)
+      .style("top", `${index * 20}px`); // 多個事件時垂直堆疊
+    
+    eventItem.append("div")
+      .attr("class", "event-name")
+      .text(event.event);
+    
+    eventItem.append("div")
+      .attr("class", "event-bar");
+    
+    eventItem.append("div")
+      .attr("class", "event-years")
+      .text(`${event.start} - ${event.end}`);
+  });
+}
 
 async function loadAllCSV() {
+  // 先載入事件資料
+  await loadEvents();
+  
   for (const y of years) {
     const rocYear = y - 1911;
     const urls = [
@@ -330,20 +732,19 @@ async function loadAllCSV() {
           break;
         }
       } catch (e) {
-        // 繼續嘗試
+        console.error(`Failed to load ${url}:`, e);
       }
     }
   }
   
-  createColorPicker();
   updateChart(1984);
+  updateEventsDisplay(1984);
 }
 
 function filterDepartmentLevel(data) {
   return data.filter(d => {
     if (!d.Source || !d.Target) return false;
     
-    // 檢查值是否為有效數字且大於0
     const valueStr = d["Value(kKLOE)"];
     if (!valueStr) return false;
     
@@ -395,7 +796,6 @@ function buildSankeyData(data) {
 }
 
 function updateChart(year) {
-  // 重新觸發動畫
   const yearElement = d3.select("#stats-year");
   yearElement.style("animation", "none");
   setTimeout(() => {
@@ -410,9 +810,10 @@ function updateChart(year) {
   const currentData = filterDepartmentLevel(rawData);
   const prevData = filterDepartmentLevel(dataByYear[year - 1] || []);
 
-  if (!currentData.length) return;
+  if (!currentData.length) {
+    return;
+  }
 
-  // 計算統計數據
   const allData = dataByYear[year] || [];
   
   const energySourceKeywords = ["煤", "原油", "石油", "天然氣", "核能", "水力", "地熱", "太陽", "風力", "生質", "潮汐"];
@@ -425,7 +826,7 @@ function updateChart(year) {
     d.Source && d.Source.includes("煤") && +d["Value(kKLOE)"] > 0
   ), d => +d["Value(kKLOE)"]);
   
-  const renewableKeywords = ["水力", "地熱", "太陽", "風力"];
+  const renewableKeywords = ["水力", "地熱", "太陽", "風力", "生質"];
   const renewableEnergy = d3.sum(allData.filter(d => 
     d.Source && renewableKeywords.some(keyword => d.Source.includes(keyword)) &&
     +d["Value(kKLOE)"] > 0
@@ -441,7 +842,7 @@ function updateChart(year) {
   const graphData = buildSankeyData(currentData);
   
   const layerX = {
-    0: 150,
+    0: 200,
     1: width / 2,
     2: width - 250
   };
@@ -455,28 +856,25 @@ function updateChart(year) {
   sankeyData.nodes.forEach(n => {
     const targetX = layerX[n.layer];
     n.x0 = targetX;
-    n.x1 = targetX + 20;
+    n.x1 = targetX + 25;
   });
 
-  // Links
   svg.append("g")
     .attr("fill", "none")
     .selectAll("path")
     .data(sankeyData.links)
     .join("path")
     .attr("d", d3.sankeyLinkHorizontal())
-    .attr("stroke", d => "#aaa")
+    .attr("stroke", "#aaa")
     .attr("stroke-width", d => Math.max(1, d.width))
     .attr("class", "link");
 
-  // Nodes
   const node = svg.append("g")
     .selectAll("g")
     .data(sankeyData.nodes)
     .join("g")
-    .attr("class", "node");
+    .attr("class", d => clickableDepartments.includes(d.name) ? "node clickable" : "node");
 
-  // 實際顯示的方塊
   node.append("rect")
     .attr("x", d => d.x0)
     .attr("y", d => d.y0)
@@ -484,7 +882,6 @@ function updateChart(year) {
     .attr("width", d => d.x1 - d.x0)
     .attr("fill", d => colorMap[d.name] || d3.schemeCategory10[d.index % 10]);
 
-  // 增加透明的可點擊區域（擴大點擊範圍，放在方塊之後）
   node.append("rect")
     .attr("class", "node-hitarea")
     .attr("x", d => d.x0 - 10)
@@ -492,36 +889,48 @@ function updateChart(year) {
     .attr("height", d => (d.y1 - d.y0) + 10)
     .attr("width", d => (d.x1 - d.x0) + 20);
 
-  // 文字
-  const textElements = node.append("text")
+  node.append("text")
     .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
     .attr("y", d => (d.y1 + d.y0) / 2)
     .attr("dy", "0.35em")
     .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
     .text(d => d.name);
 
-  // 為整個節點組添加事件
   node.on("mousemove", (event, d) => {
     const currentVal = d3.sum(currentData.filter(row => row.Source === d.name || row.Target === d.name),
                              r => +r["Value(kKLOE)"]);
     const prevVal = d3.sum(prevData.filter(row => row.Source === d.name || row.Target === d.name),
                            r => +r["Value(kKLOE)"]);
     const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
+    
+    let tooltipText = `<strong>${d.name}</strong><br/>
+        ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
+        與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}`;
+    
+    if (clickableDepartments.includes(d.name)) {
+      tooltipText += `<br/><em style="color: #ff6b35;">點擊查看詳細資料</em>`;
+    }
+    
     tooltip
       .style("display", "block")
       .style("left", (event.pageX + 15) + "px")
       .style("top", (event.pageY + 15) + "px")
-      .html(`
-        <strong>${d.name}</strong><br/>
-        ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
-        與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}
-      `);
+      .html(tooltipText);
   })
-  .on("mouseout", () => tooltip.style("display", "none"));
+  .on("mouseout", () => tooltip.style("display", "none"))
+  .on("click", (event, d) => {
+    if (clickableDepartments.includes(d.name)) {
+      event.stopPropagation();
+      showDepartmentModal(d.name, year);
+    }
+  })
+  .style("cursor", d => clickableDepartments.includes(d.name) ? "pointer" : "default");
 }
 
 d3.select("#yearSlider").on("input", function() {
-  updateChart(+this.value);
+  const year = +this.value;
+  updateChart(year);
+  updateEventsDisplay(year);
 });
 
 loadAllCSV();
