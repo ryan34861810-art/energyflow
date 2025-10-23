@@ -21,18 +21,20 @@
       z-index: 10;
     }
     #events-display {
-      position: relative;
-      height: 60px;
-      margin-bottom: 5px;
+      position: absolute;
+      top: -80px;
+      left: 0;
+      right: 0;
+      height: 75px;
+      pointer-events: none;
     }
     .event-item {
       position: absolute;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
       animation: eventFadeIn 0.4s ease;
-      top: 0;
     }
     @keyframes eventFadeIn {
       from {
@@ -45,43 +47,59 @@
       }
     }
     .event-name {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
       color: #333;
       white-space: nowrap;
       text-align: center;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 3px 7px;
+      border-radius: 3px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      z-index: 2;
+      position: relative;
+    }
+    .event-bar-container {
+      width: 100%;
+      position: relative;
+      height: 8px;
     }
     .event-bar {
       height: 8px;
-      background: linear-gradient(90deg, #667eea, #764ba2);
+      background: linear-gradient(90deg, #668ab9, #7099cf);
       border-radius: 4px;
-      width: 100%;
-      position: relative;
-      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+      position: absolute;
+      left: 0;
+      right: 0;
+      box-shadow: 0 2px 4px rgba(102, 138, 185, 0.3);
     }
     .event-bar::before,
     .event-bar::after {
       content: '';
       position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #667eea;
-      border-radius: 50%;
-      top: -2px;
-      border: 2px solid white;
+      width: 2px;
+      height: 24px;
+      background: rgba(102, 138, 185, 0.8);
+      top: -8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     .event-bar::before {
-      left: -6px;
+      left: 0;
+      background: linear-gradient(to bottom, rgba(102, 138, 185, 0.3), rgba(102, 138, 185, 0.9));
     }
     .event-bar::after {
-      right: -6px;
-      background: #764ba2;
+      right: 0;
+      background: linear-gradient(to bottom, rgba(112, 153, 207, 0.3), rgba(112, 153, 207, 0.9));
     }
     .event-years {
-      font-size: 11px;
-      color: #999;
+      font-size: 9px;
+      color: #666;
       white-space: nowrap;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 2px 5px;
+      border-radius: 2px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      margin-top: 1px;
     }
     #slider-container {
       display: flex;
@@ -89,6 +107,56 @@
       gap: 15px;
       width: 100%;
       position: relative;
+      padding-top: 85px;
+    }
+    #slider-wrapper {
+      flex: 1;
+      position: relative;
+    }
+    #yearSlider {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      background: linear-gradient(to right, #ddd 0%, #ddd 100%);
+      border-radius: 4px;
+      outline: none;
+    }
+    #yearSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #7099cf;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: all 0.2s;
+      margin-top: -6px;
+    }
+    #yearSlider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #7099cf;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: all 0.2s;
+    }
+    #yearSlider::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      background: transparent;
+      border-radius: 4px;
+    }
+    #yearSlider::-moz-range-track {
+      width: 100%;
+      height: 8px;
+      background: transparent;
+      border-radius: 4px;
     }
     #slider-container label {
       white-space: nowrap;
@@ -96,6 +164,7 @@
     #slider-container #yearSlider {
       flex: 1;
       min-width: 200px;
+      width: 100%;
     }
     #slider-container #yearDisplay {
       font-size: 20px;
@@ -115,8 +184,8 @@
       min-width: 60px;
     }
     #stats-container {
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 15px 20px;
+      background: linear-gradient(135deg, #668ab9 0%, #7099cf 100%);
       color: white;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       position: relative;
@@ -125,13 +194,13 @@
       display: flex;
       justify-content: space-around;
       align-items: center;
-      gap: 30px;
+      gap: 20px;
     }
     #stats-year {
       opacity: 0;
       animation: fadeInUp 0.5s ease forwards;
       font-weight: 300;
-      font-size: 42px;
+      font-size: 32px;
     }
     @keyframes fadeInUp {
       from {
@@ -146,26 +215,37 @@
     .stat-item {
       text-align: center;
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 80px;
     }
     .stat-value {
-      font-size: 36px;
+      font-size: 28px;
       font-weight: bold;
-      margin: 5px 0;
+      margin: 3px 0;
+      line-height: 1.2;
     }
     .stat-label {
-      font-size: 14px;
+      font-size: 12px;
       opacity: 0.9;
+      line-height: 1.2;
     }
     #chart {
       width: 100%;
-      height: 80vh;
+      height: 88vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      margin-top: -50px;
     }
     .node rect {
       stroke: #333;
       stroke-width: 2px;
+      rx: 4;
+      ry: 4;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
     }
     .node text {
       font-size: 14px;
@@ -286,6 +366,9 @@
     .modal-node rect {
       stroke: #333;
       stroke-width: 2px;
+      rx: 4;
+      ry: 4;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
     }
     
     .modal-node text {
@@ -297,10 +380,12 @@
 <body>
 
   <div id="timeline-container">
-    <div id="events-display"></div>
     <div id="slider-container">
       <label for="yearSlider">年份：</label>
-      <input type="range" id="yearSlider" name="yearSlider" min="1984" max="2024" value="1984" step="1" />
+      <div id="slider-wrapper">
+        <div id="events-display"></div>
+        <input type="range" id="yearSlider" name="yearSlider" min="1984" max="2024" value="1984" step="1" style="width: 100%;" />
+      </div>
       <span id="yearDisplay">1984</span>
     </div>
   </div>
@@ -316,11 +401,11 @@
         <div class="stat-label">ktoe</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">煤炭佔比</div>
+        <div class="stat-label">煤及煤產品佔比</div>
         <div class="stat-value" id="coalPercent">-</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">再生能源佔比</div>
+        <div class="stat-label">🌱再生能源佔比</div>
         <div class="stat-value" id="renewablePercent">-</div>
       </div>
     </div>
@@ -348,11 +433,11 @@ const modalTitle = d3.select("#modal-title");
 const modalSankey = d3.select("#modal-sankey");
 const modalClose = d3.select("#modal-close");
 const width = window.innerWidth * 0.95;
-const height = window.innerHeight * 0.75;
+const height = window.innerHeight * 0.85;
 const svg = chart.append("svg").attr("width", width).attr("height", height);
 
 const sankey = d3.sankey()
-  .nodeWidth(25)
+  .nodeWidth(35)
   .nodePadding(25)
   .extent([[200, 80], [width - 200, height - 80]])
   .nodeAlign(d3.sankeyLeft)
@@ -362,29 +447,29 @@ const sankey = d3.sankey()
   });
 
 const colorMap = {
-  "煤及煤產品": "#ffb4c3",
-  "原油及石油產品": "#ade6e7",
-  "天然氣": "#dcdda3",
-  "核能": "#ff6b35",
-  "水力": "#1e90ff",
-  "地熱": "#dc143c",
-  "太陽光電": "#ffa500",
-  "風力": "#00ced1",
-  "生質能及廢棄物": "#8b4513",
-  "再生能源": "#2e8b57",
-  "電力系統": "#1e90ff",
-  "煤炭的製造與分銷": "#ffb4c3",
-  "原油及石油的製造與分銷": "#ade6e7",
-  "天然氣的生產與分銷": "#dcdda3",
-  "能源部門自用": "#bcbcbc",
-  "電網損耗": "#8c8c8c",
-  "工業部門": "#1f77b4",
-  "運輸部門": "#ff7f0e",
-  "住宅部門": "#2ca02c",
-  "服務業部門": "#d62728",
-  "農業部門": "#9467bd",
-  "轉換效率損失": "#7f7f7f",
-  "非能源消費": "#aaaaaa"
+  "煤及煤產品": "#033884",
+  "原油及石油產品": "#1abc9c",
+  "天然氣": "#f47477",
+  "核能": "#af7ac5",
+  "水力": "#3498db",
+  "地熱": "#e74c3c",
+  "太陽光電": "#f39c12",
+  "風力": "#93b0d8",
+  "生質能及廢棄物": "#16a085",
+  "再生能源": "#27ae60",
+  "電力系統": "#f8e6a0",
+  "煤炭的製造與分銷": "#033884",
+  "原油及石油的製造與分銷": "#1abc9c",
+  "天然氣的生產與分銷": "#f47477",
+  "能源部門自用": "#f8e6a0",
+  "電網損耗": "#c0392b",
+  "工業部門": "#5dade2",
+  "運輸部門": "#ee8959",
+  "住宅部門": "#6ab04c",
+  "服務業部門": "#eb4d4b",
+  "農業部門": "#9980fa",
+  "轉換效率損失": "#7f8c8d",
+  "非能源消費": "#2c3e50"
 };
 
 function showDepartmentModal(departmentName, year) {
@@ -420,36 +505,71 @@ function showDepartmentModal(departmentName, year) {
   const sankeyNodes = [];
   const sankeyLinks = [];
   const nodeMap = new Map();
-  
   let nodeIndex = 0;
   
-  const sources = new Set();
-  const targets = new Set();
-  
-  subItems.forEach(d => {
-    sources.add(d.Source);
-    targets.add(d.Target);
-  });
-  
-  sources.forEach(source => {
-    sankeyNodes.push({ name: source, layer: 0 });
-    nodeMap.set(source, nodeIndex++);
-  });
-  
-  targets.forEach(target => {
-    sankeyNodes.push({ name: target, layer: 1 });
-    nodeMap.set(target, nodeIndex++);
-  });
-  
-  subItems.forEach(d => {
-    if (nodeMap.has(d.Source) && nodeMap.has(d.Target)) {
+  // 工業部門：使用分類彙總
+  if (departmentName === "工業部門") {
+    // 根據分類將子項目分組並彙總數值
+    const categorizedItems = {};
+    subItems.forEach(d => {
+      const target = d.Target;
+      const category = categoryData[target] || "其他";
+      
+      if (!categorizedItems[category]) {
+        categorizedItems[category] = 0;
+      }
+      categorizedItems[category] += +d["Value(kKLOE)"];
+    });
+    
+    // Layer 0: 工業部門
+    sankeyNodes.push({ name: departmentName, layer: 0 });
+    nodeMap.set(departmentName, nodeIndex++);
+    
+    // Layer 1: 分類
+    const categories = Object.keys(categorizedItems).sort();
+    categories.forEach(category => {
+      sankeyNodes.push({ name: category, layer: 1 });
+      nodeMap.set(category, nodeIndex++);
+    });
+    
+    // 建立連結：部門 -> 分類
+    categories.forEach(category => {
       sankeyLinks.push({
-        source: nodeMap.get(d.Source),
-        target: nodeMap.get(d.Target),
-        value: +d["Value(kKLOE)"]
+        source: nodeMap.get(departmentName),
+        target: nodeMap.get(category),
+        value: categorizedItems[category]
       });
-    }
-  });
+    });
+  } else {
+    // 其他部門：維持原本的兩層結構
+    const sources = new Set();
+    const targets = new Set();
+    
+    subItems.forEach(d => {
+      sources.add(d.Source);
+      targets.add(d.Target);
+    });
+    
+    sources.forEach(source => {
+      sankeyNodes.push({ name: source, layer: 0 });
+      nodeMap.set(source, nodeIndex++);
+    });
+    
+    targets.forEach(target => {
+      sankeyNodes.push({ name: target, layer: 1 });
+      nodeMap.set(target, nodeIndex++);
+    });
+    
+    subItems.forEach(d => {
+      if (nodeMap.has(d.Source) && nodeMap.has(d.Target)) {
+        sankeyLinks.push({
+          source: nodeMap.get(d.Source),
+          target: nodeMap.get(d.Target),
+          value: +d["Value(kKLOE)"]
+        });
+      }
+    });
+  }
   
   if (sankeyLinks.length === 0) {
     modalSankey.append("div")
@@ -493,7 +613,7 @@ function showDepartmentModal(departmentName, year) {
         const nodeHeight = outgoingValue * heightScale;
         
         n.x0 = leftX;
-        n.x1 = leftX + 25;
+        n.x1 = leftX + 35;
         n.y0 = (modalHeight - nodeHeight) / 2;
         n.y1 = n.y0 + nodeHeight;
       }
@@ -507,7 +627,7 @@ function showDepartmentModal(departmentName, year) {
       const nodeHeight = incomingValue * heightScale;
       
       n.x0 = rightX;
-      n.x1 = rightX + 25;
+      n.x1 = rightX + 35;
       n.y0 = currentY;
       n.y1 = currentY + nodeHeight;
       currentY += nodeHeight + subItemPadding;
@@ -581,7 +701,10 @@ function showDepartmentModal(departmentName, year) {
       .attr("y", d => d.y0)
       .attr("height", d => d.y1 - d.y0)
       .attr("width", d => d.x1 - d.x0)
-      .attr("fill", linkColor);
+      .attr("rx", 4)
+      .attr("ry", 4)
+      .attr("fill", linkColor)
+      .style("filter", "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15))");
     
     node.append("text")
       .attr("x", d => d.x0 < modalWidth / 2 ? d.x1 + 6 : d.x0 - 6)
@@ -635,6 +758,7 @@ const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/m
 const years = d3.range(1984, 2025);
 let dataByYear = {};
 let eventsData = [];
+let categoryData = {};
 
 // 載入事件資料的函數
 async function loadEvents() {
@@ -647,6 +771,29 @@ async function loadEvents() {
     }
   } catch (e) {
     console.log('No events file found or error loading events:', e);
+  }
+}
+
+// 載入分類資料的函數
+async function loadCategories() {
+  try {
+    const response = await fetch(`${csvBase}category.csv`);
+    if (response.ok) {
+      const text = await response.text();
+      const parsed = d3.csvParse(text);
+      
+      // 將分類資料轉換為 Map：部門 -> 分類
+      parsed.forEach(row => {
+        const dept = row['部門'] || row['department'];
+        const category = row['分類'] || row['category'];
+        if (dept && category) {
+          categoryData[dept] = category;
+        }
+      });
+      console.log('Categories loaded:', categoryData);
+    }
+  } catch (e) {
+    console.log('No category file found or error loading categories:', e);
   }
 }
 
@@ -663,34 +810,69 @@ function updateEventsDisplay(year) {
     return year >= start && year <= end;
   });
   
-  // 取得滑桿的實際寬度和位置
   const slider = document.getElementById("yearSlider");
-  const sliderRect = slider.getBoundingClientRect();
-  const sliderWidth = slider.offsetWidth;
   const minYear = +slider.min;
   const maxYear = +slider.max;
   const yearRange = maxYear - minYear;
   
-  activeEvents.forEach((event, index) => {
+  // 取得滑桿的實際尺寸
+  const sliderRect = slider.getBoundingClientRect();
+  const sliderWidth = sliderRect.width;
+  
+  // thumb 寬度為 20px，滑桿的有效範圍需要扣除兩端各 10px
+  const thumbRadius = 10;
+  const effectiveWidth = sliderWidth - (thumbRadius * 2);
+  
+  // 對事件按開始年份排序
+  activeEvents.sort((a, b) => +a.start - +b.start);
+  
+  // 計算垂直分層，避免重疊
+  const layers = [];
+  
+  activeEvents.forEach((event) => {
     const start = +event.start;
     const end = +event.end;
     
-    // 計算事件條的位置和寬度（相對於滑桿）
-    const startPercent = ((start - minYear) / yearRange) * 100;
-    const endPercent = ((end - minYear) / yearRange) * 100;
-    const widthPercent = endPercent - startPercent;
+    // 找到第一個不重疊的層
+    let layerIndex = 0;
+    while (layerIndex < layers.length) {
+      const canFit = layers[layerIndex].every(e => {
+        const eStart = +e.start;
+        const eEnd = +e.end;
+        return end < eStart - 2 || start > eEnd + 2;
+      });
+      if (canFit) break;
+      layerIndex++;
+    }
+    
+    if (layerIndex === layers.length) {
+      layers.push([]);
+    }
+    layers[layerIndex].push(event);
+    
+    // 計算年份在滑桿上的比例位置
+    const startRatio = (start - minYear) / yearRange;
+    const endRatio = (end - minYear) / yearRange;
+    
+    // 轉換為實際像素位置（加上左側偏移）
+    const leftPx = thumbRadius + (startRatio * effectiveWidth);
+    const rightPx = thumbRadius + (endRatio * effectiveWidth);
+    const widthPx = rightPx - leftPx;
     
     const eventItem = eventsDisplay.append("div")
       .attr("class", "event-item")
-      .style("left", `${startPercent}%`)
-      .style("width", `${widthPercent}%`)
-      .style("top", `${index * 20}px`); // 多個事件時垂直堆疊
+      .style("left", `${leftPx}px`)
+      .style("width", `${widthPx}px`)
+      .style("bottom", `${layerIndex * 28}px`);
     
     eventItem.append("div")
       .attr("class", "event-name")
       .text(event.event);
     
-    eventItem.append("div")
+    const barContainer = eventItem.append("div")
+      .attr("class", "event-bar-container");
+    
+    barContainer.append("div")
       .attr("class", "event-bar");
     
     eventItem.append("div")
@@ -700,8 +882,9 @@ function updateEventsDisplay(year) {
 }
 
 async function loadAllCSV() {
-  // 先載入事件資料
+  // 先載入事件資料和分類資料
   await loadEvents();
+  await loadCategories();
   
   for (const y of years) {
     const rocYear = y - 1911;
@@ -856,7 +1039,7 @@ function updateChart(year) {
   sankeyData.nodes.forEach(n => {
     const targetX = layerX[n.layer];
     n.x0 = targetX;
-    n.x1 = targetX + 25;
+    n.x1 = targetX + 35;
   });
 
   svg.append("g")
@@ -880,7 +1063,10 @@ function updateChart(year) {
     .attr("y", d => d.y0)
     .attr("height", d => d.y1 - d.y0)
     .attr("width", d => d.x1 - d.x0)
-    .attr("fill", d => colorMap[d.name] || d3.schemeCategory10[d.index % 10]);
+    .attr("rx", 4)
+    .attr("ry", 4)
+    .attr("fill", d => colorMap[d.name] || d3.schemeCategory10[d.index % 10])
+    .style("filter", "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15))");
 
   node.append("rect")
     .attr("class", "node-hitarea")
