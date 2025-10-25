@@ -19,14 +19,27 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      transition: padding-top 0.3s ease;
+    }
+    #timeline-container.has-events {
+      padding-top: 200px;
+    }
+    #timeline-container.no-events {
+      padding-top: 15px;
     }
     #events-display {
       position: absolute;
-      top: -80px;
+      top: -180px;
       left: 0;
       right: 0;
-      height: 75px;
+      height: 175px;
       pointer-events: none;
+      overflow: visible;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #events-display.visible {
+      opacity: 1;
     }
     .event-item {
       position: absolute;
@@ -107,7 +120,7 @@
       gap: 15px;
       width: 100%;
       position: relative;
-      padding-top: 85px;
+      padding-top: 0;
     }
     #slider-wrapper {
       flex: 1;
@@ -239,6 +252,109 @@
       justify-content: center;
       align-items: center;
       margin-top: -50px;
+    }
+    #trend-container {
+      width: 100%;
+      padding: 30px;
+      background: white;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.1);
+    }
+    #trend-controls {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .trend-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .trend-selector label {
+      font-weight: 600;
+      color: #333;
+      min-width: 80px;
+    }
+    .trend-selector select {
+      padding: 8px 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      min-width: 200px;
+      transition: border-color 0.3s;
+    }
+    .trend-selector select:hover {
+      border-color: #7099cf;
+    }
+    .trend-selector select:focus {
+      outline: none;
+      border-color: #668ab9;
+    }
+    #trend-chart {
+      width: 100%;
+      height: 400px;
+      position: relative;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    #trend-chart.visible {
+      opacity: 1;
+    }
+    .trend-line {
+      fill: none;
+      stroke-width: 3;
+      transition: stroke-width 0.3s;
+    }
+    .trend-line.animated {
+      animation: drawLine 1.5s ease-out forwards;
+    }
+    @keyframes drawLine {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .trend-line:hover {
+      stroke-width: 5;
+    }
+    .trend-dot {
+      cursor: pointer;
+      opacity: 0;
+      animation: fadeInDot 0.5s ease forwards;
+    }
+    @keyframes fadeInDot {
+      from {
+        opacity: 0;
+        transform: scale(0);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    .trend-dot:hover {
+      r: 6;
+    }
+    .trend-legend {
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #333;
+    }
+    .legend-color {
+      width: 30px;
+      height: 4px;
+      border-radius: 2px;
     }
     .node rect {
       stroke: #333;
@@ -375,204 +491,25 @@
       font-size: 13px;
       pointer-events: none;
     }
-    
-    #trend-container {
-      background: white;
-      padding: 30px;
-      margin: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    #trend-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-    
-    #trend-title {
-      font-size: 22px;
-      font-weight: bold;
-      color: #333;
-    }
-    
-    #trend-controls {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    
-    .data-selector {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .data-selector label {
-      font-size: 14px;
-      color: #666;
-      font-weight: 500;
-    }
-    
-    .data-selector select {
-      padding: 8px 12px;
-      border: 2px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      background: white;
-      cursor: pointer;
-      transition: border-color 0.3s;
-      min-width: 180px;
-    }
-    
-    .data-selector select:hover {
-      border-color: #7099cf;
-    }
-    
-    .data-selector select:focus {
-      outline: none;
-      border-color: #7099cf;
-    }
-    
-    #trend-chart {
-      width: 100%;
-      height: 400px;
-      margin-top: 10px;
-    }
-    
-    .trend-line {
-      fill: none;
-      stroke-width: 3;
-      transition: stroke-width 0.3s;
-    }
-    
-    .trend-line:hover {
-      stroke-width: 5;
-    }
-    
-    .trend-dot {
-      fill: white;
-      stroke-width: 2;
-      cursor: pointer;
-      transition: r 0.3s;
-    }
-    
-    .trend-dot:hover {
-      r: 6;
-    }
-    
-    .axis-label {
-      font-size: 12px;
-      fill: #666;
-    }
-    
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-top: 15px;
-      flex-wrap: wrap;
-    }
-    
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      color: #333;
-    }
-    
-    .legend-color {
-      width: 30px;
-      height: 4px;
-      border-radius: 2px;
-    }
-    
-    #loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.95);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-    }
-    
-    #loading-overlay.hidden {
-      display: none;
-    }
-    
-    .loading-spinner {
-      width: 60px;
-      height: 60px;
-      border: 5px solid #e0e0e0;
-      border-top: 5px solid #7099cf;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .loading-text {
-      font-size: 18px;
-      color: #333;
-      font-weight: 500;
-    }
-    
-    .loading-progress {
-      width: 300px;
-      height: 8px;
-      background: #e0e0e0;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    
-    .loading-progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #668ab9, #7099cf);
-      width: 0%;
-      transition: width 0.3s;
-      border-radius: 4px;
-    }
   </style>
 </head>
 <body>
-
-  <div id="loading-overlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">載入能源數據中...</div>
-    <div class="loading-progress">
-      <div class="loading-progress-bar" id="loading-bar"></div>
-    </div>
-  </div>
 
   <div id="timeline-container">
     <div id="slider-container">
       <label for="yearSlider">年份：</label>
       <div id="slider-wrapper">
         <div id="events-display"></div>
-        <input type="range" id="yearSlider" name="yearSlider" min="1984" max="2024" value="1984" step="1" style="width: 100%;" />
+        <input type="range" id="yearSlider" name="yearSlider" min="1982" max="2024" value="1982" step="1" style="width: 100%;" />
       </div>
-      <span id="yearDisplay">1984</span>
+      <span id="yearDisplay">1982</span>
     </div>
   </div>
 
   <div id="stats-container">
     <div id="stats-grid">
       <div class="stat-item">
-        <div class="stat-value" id="stats-year">1984</div>
+        <div class="stat-value" id="stats-year">1982</div>
       </div>
       <div class="stat-item">
         <div class="stat-label">總能源供給</div>
@@ -594,62 +531,22 @@
   <div id="tooltip"></div>
   
   <div id="trend-container">
-    <div id="trend-header">
-      <div id="trend-title">歷年數據趨勢分析</div>
-      <div id="trend-controls">
-        <div class="data-selector">
-          <label for="data1">數據1：</label>
-          <select id="data1">
-            <option value="煤及煤產品">煤及煤產品</option>
-            <option value="原油及石油產品">原油及石油產品</option>
-            <option value="天然氣">天然氣</option>
-            <option value="核能">核能</option>
-            <option value="水力">水力</option>
-            <option value="地熱">地熱</option>
-            <option value="太陽光電">太陽光電</option>
-            <option value="風力">風力</option>
-            <option value="生質能及廢棄物">生質能及廢棄物</option>
-            <option value="再生能源" selected>再生能源</option>
-            <option value="工業部門">工業部門</option>
-            <option value="運輸部門">運輸部門</option>
-            <option value="住宅部門">住宅部門</option>
-            <option value="服務業部門">服務業部門</option>
-            <option value="農業部門">農業部門</option>
-          </select>
-        </div>
-        <div class="data-selector">
-          <label for="data2">數據2：</label>
-          <select id="data2">
-            <option value="煤及煤產品" selected>煤及煤產品</option>
-            <option value="原油及石油產品">原油及石油產品</option>
-            <option value="天然氣">天然氣</option>
-            <option value="核能">核能</option>
-            <option value="水力">水力</option>
-            <option value="地熱">地熱</option>
-            <option value="太陽光電">太陽光電</option>
-            <option value="風力">風力</option>
-            <option value="生質能及廢棄物">生質能及廢棄物</option>
-            <option value="再生能源">再生能源</option>
-            <option value="工業部門">工業部門</option>
-            <option value="運輸部門">運輸部門</option>
-            <option value="住宅部門">住宅部門</option>
-            <option value="服務業部門">服務業部門</option>
-            <option value="農業部門">農業部門</option>
-          </select>
-        </div>
+    <div id="trend-controls">
+      <div class="trend-selector">
+        <label for="data1-select">數據 1：</label>
+        <select id="data1-select">
+          <option value="">請選擇...</option>
+        </select>
+      </div>
+      <div class="trend-selector">
+        <label for="data2-select">數據 2：</label>
+        <select id="data2-select">
+          <option value="">請選擇...</option>
+        </select>
       </div>
     </div>
     <div id="trend-chart"></div>
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-color" style="background: #2e8b57;"></div>
-        <span id="legend1">再生能源</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #013982;"></div>
-        <span id="legend2">煤及煤產品</span>
-      </div>
-    </div>
+    <div class="trend-legend" id="trend-legend"></div>
   </div>
   
   <div id="modal-overlay">
@@ -670,14 +567,18 @@ const modalOverlay = d3.select("#modal-overlay");
 const modalTitle = d3.select("#modal-title");
 const modalSankey = d3.select("#modal-sankey");
 const modalClose = d3.select("#modal-close");
-const width = window.innerWidth * 0.95;
+const width = window.innerWidth - 80;
 const height = window.innerHeight * 0.85;
-const svg = chart.append("svg").attr("width", width).attr("height", height);
+const svg = chart.append("svg")
+  .attr("width", width)
+  .attr("height", height)
+  .style("display", "block")
+  .style("margin", "0 auto");
 
 const sankey = d3.sankey()
   .nodeWidth(35)
   .nodePadding(25)
-  .extent([[200, 80], [width - 200, height - 80]])
+  .extent([[100, 50], [width - 100, height - 50]])
   .nodeAlign(d3.sankeyLeft)
   .nodeSort((a, b) => {
     if (a.layer !== b.layer) return a.layer - b.layer;
@@ -836,7 +737,6 @@ function showDepartmentModal(departmentName, year) {
       currentY += nodeHeight + subItemPadding;
     });
     
-    // 按目標節點的 y 位置排序連結，確保連結順序正確
     sankeyLinks.sort((a, b) => {
       const targetA = sankeyNodes[a.target];
       const targetB = sankeyNodes[b.target];
@@ -940,7 +840,7 @@ function showDepartmentModal(departmentName, year) {
         .style("display", "block")
         .style("left", (event.pageX + 15) + "px")
         .style("top", (event.pageY + 15) + "px")
-        .html(`<strong>${d.name}</strong><br/>數值：${value.toLocaleString()} kKLOE<br/>佔比：${percentage}%`);
+        .html(`<strong>${d.name}</strong><br/>數值：${value.toLocaleString()} ktoe<br/>佔比：${percentage}%`);
     })
     .on("mouseout", () => tooltip.style("display", "none"));
   }, 50);
@@ -958,10 +858,341 @@ modalOverlay.on("click", function(event) {
 });
 
 const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/";
-const years = d3.range(1984, 2025);
+const years = d3.range(1982, 2025);
 let dataByYear = {};
 let eventsData = [];
-let historicalData = [];
+let allNodeNames = new Set();
+
+// 收集所有可能的節點名稱
+function collectAllNodeNames() {
+  const layer0Nodes = new Set();
+  const layer1Nodes = new Set();
+  const layer2Nodes = new Set();
+  
+  Object.values(dataByYear).forEach(yearData => {
+    const filtered = filterDepartmentLevel(yearData);
+    filtered.forEach(d => {
+      const sourceName = d.Source;
+      const targetName = d.Target;
+      
+      // 判斷層級
+      if (energySources.some(s => sourceName.includes(s.substring(0, 3))) ||
+          sourceName.includes("核能") || sourceName.includes("水力") || 
+          sourceName.includes("地熱") || sourceName.includes("太陽") || 
+          sourceName.includes("風力") || sourceName.includes("生質")) {
+        layer0Nodes.add(sourceName);
+      } else if (departments.includes(sourceName)) {
+        layer2Nodes.add(sourceName);
+      } else {
+        layer1Nodes.add(sourceName);
+      }
+      
+      if (energySources.some(s => targetName.includes(s.substring(0, 3))) ||
+          targetName.includes("核能") || targetName.includes("水力") || 
+          targetName.includes("地熱") || targetName.includes("太陽") || 
+          targetName.includes("風力") || targetName.includes("生質")) {
+        layer0Nodes.add(targetName);
+      } else if (departments.includes(targetName)) {
+        layer2Nodes.add(targetName);
+      } else {
+        layer1Nodes.add(targetName);
+      }
+    });
+  });
+  
+  // 按層級排序
+  const sortedNames = [
+    "總能源供給",
+    "再生能源總量",
+    ...Array.from(layer0Nodes).sort(),
+    ...Array.from(layer1Nodes).sort(),
+    ...Array.from(layer2Nodes).sort()
+  ];
+  
+  // 初始化下拉選單
+  const select1 = d3.select("#data1-select");
+  const select2 = d3.select("#data2-select");
+  
+  select1.selectAll("option:not(:first-child)").remove();
+  select2.selectAll("option:not(:first-child)").remove();
+  
+  sortedNames.forEach(name => {
+    select1.append("option").attr("value", name).text(name);
+    select2.append("option").attr("value", name).text(name);
+  });
+  
+  // 設定預設值：煤及煤產品 和 再生能源總量
+  if (sortedNames.includes("煤及煤產品")) {
+    select1.property("value", "煤及煤產品");
+  }
+  if (sortedNames.includes("再生能源總量")) {
+    select2.property("value", "再生能源總量");
+  }
+  updateTrendChart();
+}
+
+// 計算特定節點在某年的總量
+function getNodeValue(nodeName, year) {
+  const yearData = dataByYear[year];
+  if (!yearData) return 0;
+  
+  // 特殊處理：總能源供給（第一階層初級能源的輸出總和）
+  if (nodeName === "總能源供給") {
+    const primaryEnergySources = [
+      "煤及煤產品",
+      "原油及石油產品", 
+      "天然氣",
+      "核能",
+      "水力",
+      "地熱",
+      "太陽光電",
+      "風力",
+      "生質能及廢棄物"
+    ];
+    
+    return d3.sum(primaryEnergySources, nodeName => {
+      return d3.sum(yearData.filter(d => 
+        d.Source === nodeName && +d["Value(kKLOE)"] > 0
+      ), d => +d["Value(kKLOE)"]);
+    });
+  }
+  
+  // 特殊處理：再生能源總量
+  if (nodeName === "再生能源總量") {
+    const renewableSources = ["水力", "地熱", "太陽光電", "風力", "生質能及廢棄物"];
+    
+    return d3.sum(renewableSources, nodeName => {
+      return d3.sum(yearData.filter(d => 
+        d.Source === nodeName && +d["Value(kKLOE)"] > 0
+      ), d => +d["Value(kKLOE)"]);
+    });
+  }
+  
+  const filtered = filterDepartmentLevel(yearData);
+  const total = d3.sum(filtered.filter(d => 
+    d.Source === nodeName || d.Target === nodeName
+  ), d => +d["Value(kKLOE)"]);
+  
+  return total;
+}
+
+// 更新趨勢圖
+function updateTrendChart() {
+  const data1Name = d3.select("#data1-select").property("value");
+  const data2Name = d3.select("#data2-select").property("value");
+  
+  const trendChart = d3.select("#trend-chart");
+  
+  // 淡出效果
+  trendChart.classed("visible", false);
+  
+  setTimeout(() => {
+    trendChart.html("");
+    
+    const legend = d3.select("#trend-legend");
+    legend.html("");
+    
+    if (!data1Name && !data2Name) return;
+    
+    const margin = {top: 20, right: 80, bottom: 50, left: 80};
+    const width = trendChart.node().offsetWidth - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+    
+    const svg = trendChart.append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+    
+    // 準備數據
+    const data1 = data1Name ? years.map(y => ({year: y, value: getNodeValue(data1Name, y)})) : [];
+    const data2 = data2Name ? years.map(y => ({year: y, value: getNodeValue(data2Name, y)})) : [];
+    
+    const allValues = [...data1.map(d => d.value), ...data2.map(d => d.value)];
+    const maxValue = d3.max(allValues) || 100;
+    
+    // 建立比例尺
+    const x = d3.scaleLinear()
+      .domain([years[0], years[years.length - 1]])
+      .range([0, width]);
+    
+    const y = d3.scaleLinear()
+      .domain([0, maxValue * 1.1])
+      .range([height, 0]);
+    
+    // X軸
+    svg.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(x).tickFormat(d3.format("d")).ticks(10))
+      .style("font-size", "12px");
+    
+    // Y軸
+    svg.append("g")
+      .call(d3.axisLeft(y).tickFormat(d => d.toLocaleString()))
+      .style("font-size", "12px");
+    
+    // Y軸標籤
+    svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", -60)
+      .attr("x", -height / 2)
+      .attr("text-anchor", "middle")
+      .style("font-size", "14px")
+      .style("fill", "#666")
+      .text("數值 (ktoe)");
+    
+    // 線條生成器
+    const line = d3.line()
+      .x(d => x(d.year))
+      .y(d => y(d.value))
+      .curve(d3.curveMonotoneX);
+    
+    // 計算兩個顏色的差異度
+    function colorDistance(color1, color2) {
+      const rgb1 = d3.color(color1).rgb();
+      const rgb2 = d3.color(color2).rgb();
+      return Math.sqrt(
+        Math.pow(rgb1.r - rgb2.r, 2) +
+        Math.pow(rgb1.g - rgb2.g, 2) +
+        Math.pow(rgb1.b - rgb2.b, 2)
+      );
+    }
+    
+    // 對比色選擇
+    const contrastColors = ["#e74c3c", "#f39c12", "#9b59b6", "#16a085", "#2980b9", "#c0392b"];
+    
+    // 繪製數據1
+    if (data1Name && data1.length > 0) {
+      let color1;
+      if (data1Name === "再生能源總量") {
+        color1 = "#2e8b57";
+      } else if (data1Name === "總能源供給") {
+        color1 = "#4a90e2";
+      } else {
+        color1 = colorMap[data1Name] || "#668ab9";
+      }
+      
+      const path1 = svg.append("path")
+        .datum(data1)
+        .attr("class", "trend-line line1")
+        .attr("d", line)
+        .attr("stroke", color1)
+        .attr("stroke-width", 3)
+        .attr("fill", "none");
+      
+      const totalLength1 = path1.node().getTotalLength();
+      
+      path1
+        .attr("stroke-dasharray", totalLength1 + " " + totalLength1)
+        .attr("stroke-dashoffset", totalLength1)
+        .classed("animated", true)
+        .style("animation", `drawLine 1.5s ease-out forwards`);
+      
+      svg.selectAll(".dot1")
+        .data(data1)
+        .join("circle")
+        .attr("class", "trend-dot")
+        .attr("cx", d => x(d.year))
+        .attr("cy", d => y(d.value))
+        .attr("r", 4)
+        .attr("fill", color1)
+        .style("animation-delay", (d, i) => `${i * 0.02}s`)
+        .on("mousemove", (event, d) => {
+          tooltip
+            .style("display", "block")
+            .style("left", (event.pageX + 15) + "px")
+            .style("top", (event.pageY + 15) + "px")
+            .html(`<strong>${data1Name}</strong><br/>年份：${d.year}<br/>數值：${d.value.toLocaleString()} ktoe`);
+        })
+        .on("mouseout", () => tooltip.style("display", "none"));
+      
+      legend.append("div")
+        .attr("class", "legend-item")
+        .html(`<div class="legend-color" style="background: ${color1}"></div><span>${data1Name}</span>`);
+    }
+    
+    // 繪製數據2
+    if (data2Name && data2.length > 0) {
+      // 先取得數據1的顏色
+      let color1;
+      if (data1Name === "再生能源總量") {
+        color1 = "#2e8b57";
+      } else if (data1Name === "總能源供給") {
+        color1 = "#4a90e2";
+      } else {
+        color1 = colorMap[data1Name] || "#668ab9";
+      }
+      
+      // 取得數據2的基礎顏色
+      let color2;
+      if (data2Name === "再生能源總量") {
+        color2 = "#2e8b57";
+      } else if (data2Name === "總能源供給") {
+        color2 = "#4a90e2";
+      } else {
+        color2 = colorMap[data2Name] || "#e67e22";
+      }
+      
+      // 如果顏色太接近（距離小於100），使用對比色
+      if (data1Name && colorDistance(color1, color2) < 100) {
+        // 找一個與color1差異最大的對比色
+        let maxDistance = 0;
+        let bestColor = contrastColors[0];
+        for (const c of contrastColors) {
+          const dist = colorDistance(color1, c);
+          if (dist > maxDistance) {
+            maxDistance = dist;
+            bestColor = c;
+          }
+        }
+        color2 = bestColor;
+      }
+      
+      const path2 = svg.append("path")
+        .datum(data2)
+        .attr("class", "trend-line line2")
+        .attr("d", line)
+        .attr("stroke", color2)
+        .attr("stroke-width", 3)
+        .attr("fill", "none");
+      
+      const totalLength2 = path2.node().getTotalLength();
+      
+      path2
+        .attr("stroke-dasharray", totalLength2 + " " + totalLength2)
+        .attr("stroke-dashoffset", totalLength2)
+        .classed("animated", true)
+        .style("animation", `drawLine 1.5s ease-out forwards`);
+      
+      svg.selectAll(".dot2")
+        .data(data2)
+        .join("circle")
+        .attr("class", "trend-dot")
+        .attr("cx", d => x(d.year))
+        .attr("cy", d => y(d.value))
+        .attr("r", 4)
+        .attr("fill", color2)
+        .style("animation-delay", (d, i) => `${i * 0.02}s`)
+        .on("mousemove", (event, d) => {
+          tooltip
+            .style("display", "block")
+            .style("left", (event.pageX + 15) + "px")
+            .style("top", (event.pageY + 15) + "px")
+            .html(`<strong>${data2Name}</strong><br/>年份：${d.year}<br/>數值：${d.value.toLocaleString()} ktoe`);
+        })
+        .on("mouseout", () => tooltip.style("display", "none"));
+      
+      legend.append("div")
+        .attr("class", "legend-item")
+        .html(`<div class="legend-color" style="background: ${color2}"></div><span>${data2Name}</span>`);
+    }
+    
+    // 淡入效果
+    setTimeout(() => {
+      trendChart.classed("visible", true);
+    }, 50);
+  }, 300);
+}
 
 // 載入事件資料的函數
 async function loadEvents() {
@@ -980,15 +1211,31 @@ async function loadEvents() {
 // 更新事件顯示
 function updateEventsDisplay(year) {
   const eventsDisplay = d3.select("#events-display");
+  const timelineContainer = d3.select("#timeline-container");
   eventsDisplay.html("");
   
-  if (!eventsData || eventsData.length === 0) return;
+  if (!eventsData || eventsData.length === 0) {
+    eventsDisplay.classed("visible", false);
+    timelineContainer.classed("has-events", false).classed("no-events", true);
+    return;
+  }
   
   const activeEvents = eventsData.filter(e => {
     const start = +e.start;
     const end = +e.end;
     return year >= start && year <= end;
   });
+  
+  // 如果沒有活躍事件，隱藏事件區域
+  if (activeEvents.length === 0) {
+    eventsDisplay.classed("visible", false);
+    timelineContainer.classed("has-events", false).classed("no-events", true);
+    return;
+  }
+  
+  // 有事件時顯示事件區域
+  eventsDisplay.classed("visible", true);
+  timelineContainer.classed("has-events", true).classed("no-events", false);
   
   const slider = document.getElementById("yearSlider");
   const minYear = +slider.min;
@@ -1065,9 +1312,6 @@ async function loadAllCSV() {
   // 先載入事件資料
   await loadEvents();
   
-  const totalYears = years.length;
-  let loadedYears = 0;
-  
   for (const y of years) {
     const rocYear = y - 1911;
     const urls = [
@@ -1100,69 +1344,11 @@ async function loadAllCSV() {
         console.error(`Failed to load ${url}:`, e);
       }
     }
-    
-    loadedYears++;
-    const progress = (loadedYears / totalYears) * 100;
-    d3.select("#loading-bar").style("width", progress + "%");
   }
   
-  // 計算歷年統計數據
-  calculateHistoricalData();
-  
-  // 隱藏載入畫面
-  d3.select("#loading-overlay").classed("hidden", true);
-  
-  updateChart(1984);
-  updateEventsDisplay(1984);
-  updateTrendChart();
-}
-
-// 計算歷年數據 - 改為計算各節點的數值
-function calculateHistoricalData() {
-  historicalData = [];
-  
-  const nodeNames = [
-    "煤及煤產品", "原油及石油產品", "天然氣", "核能", 
-    "水力", "地熱", "太陽光電", "風力", "生質能及廢棄物", "再生能源",
-    "工業部門", "運輸部門", "住宅部門", "服務業部門", "農業部門"
-  ];
-  
-  years.forEach(year => {
-    const yearData = { year };
-    const currentData = filterDepartmentLevel(dataByYear[year] || []);
-    const allData = dataByYear[year] || [];
-    
-    nodeNames.forEach(nodeName => {
-      // 計算該節點相關的所有流量
-      let value = 0;
-      
-      // 對於能源來源，計算從該來源流出的總量
-      if (["煤及煤產品", "原油及石油產品", "天然氣", "核能", "水力", "地熱", "太陽光電", "風力", "生質能及廢棄物"].includes(nodeName)) {
-        value = d3.sum(allData.filter(d => 
-          d.Source && d.Source.includes(nodeName.substring(0, 3)) && +d["Value(kKLOE)"] > 0
-        ), d => +d["Value(kKLOE)"]);
-      }
-      // 對於再生能源，特殊處理
-      else if (nodeName === "再生能源") {
-        const renewableKeywords = ["水力", "地熱", "太陽", "風力", "生質"];
-        value = d3.sum(allData.filter(d => 
-          d.Source && renewableKeywords.some(keyword => d.Source.includes(keyword)) && +d["Value(kKLOE)"] > 0
-        ), d => +d["Value(kKLOE)"]);
-      }
-      // 對於部門，計算流入該部門的總量
-      else if (["工業部門", "運輸部門", "住宅部門", "服務業部門", "農業部門"].includes(nodeName)) {
-        value = d3.sum(allData.filter(d => 
-          d.Target === nodeName && +d["Value(kKLOE)"] > 0
-        ), d => +d["Value(kKLOE)"]);
-      }
-      
-      yearData[nodeName] = value;
-    });
-    
-    historicalData.push(yearData);
-  });
-  
-  console.log("Historical data calculated:", historicalData.slice(0, 3));
+  updateChart(1982);
+  updateEventsDisplay(1982);
+  collectAllNodeNames();
 }
 
 function filterDepartmentLevel(data) {
@@ -1240,21 +1426,38 @@ function updateChart(year) {
 
   const allData = dataByYear[year] || [];
   
-  const energySourceKeywords = ["煤", "原油", "石油", "天然氣", "核能", "水力", "地熱", "太陽", "風力", "生質", "潮汐"];
-  const totalEnergy = d3.sum(allData.filter(d => 
-    energySourceKeywords.some(keyword => d.Source && d.Source.includes(keyword)) &&
-    +d["Value(kKLOE)"] > 0
-  ), d => +d["Value(kKLOE)"]);
+  // 定義第一階層的能源來源節點（這些是初級能源，不是從其他節點轉換來的）
+  const primaryEnergySources = [
+    "煤及煤產品",
+    "原油及石油產品", 
+    "天然氣",
+    "核能",
+    "水力",
+    "地熱",
+    "太陽光電",
+    "風力",
+    "生質能及廢棄物"
+  ];
   
+  // 計算第一階層所有節點的輸出總和（總能源供給）
+  const totalEnergy = d3.sum(primaryEnergySources, nodeName => {
+    return d3.sum(allData.filter(d => 
+      d.Source === nodeName && +d["Value(kKLOE)"] > 0
+    ), d => +d["Value(kKLOE)"]);
+  });
+  
+  // 計算煤及煤產品的輸出總和
   const coalEnergy = d3.sum(allData.filter(d => 
-    d.Source && d.Source.includes("煤") && +d["Value(kKLOE)"] > 0
+    d.Source === "煤及煤產品" && +d["Value(kKLOE)"] > 0
   ), d => +d["Value(kKLOE)"]);
   
-  const renewableKeywords = ["水力", "地熱", "太陽", "風力", "生質"];
-  const renewableEnergy = d3.sum(allData.filter(d => 
-    d.Source && renewableKeywords.some(keyword => d.Source.includes(keyword)) &&
-    +d["Value(kKLOE)"] > 0
-  ), d => +d["Value(kKLOE)"]);
+  // 計算再生能源的輸出總和
+  const renewableSources = ["水力", "地熱", "太陽光電", "風力", "生質能及廢棄物"];
+  const renewableEnergy = d3.sum(renewableSources, nodeName => {
+    return d3.sum(allData.filter(d => 
+      d.Source === nodeName && +d["Value(kKLOE)"] > 0
+    ), d => +d["Value(kKLOE)"]);
+  });
   
   const coalPercent = totalEnergy > 0 ? ((coalEnergy / totalEnergy) * 100).toFixed(1) : 0;
   const renewablePercent = totalEnergy > 0 ? ((renewableEnergy / totalEnergy) * 100).toFixed(1) : 0;
@@ -1266,9 +1469,9 @@ function updateChart(year) {
   const graphData = buildSankeyData(currentData);
   
   const layerX = {
-    0: 200,
+    0: 100,
     1: width / 2,
-    2: width - 250
+    2: width - 150
   };
   
   graphData.nodes.forEach(n => {
@@ -1331,7 +1534,7 @@ function updateChart(year) {
     const change = prevVal ? (((currentVal - prevVal) / prevVal) * 100).toFixed(1) : "N/A";
     
     let tooltipText = `<strong>${d.name}</strong><br/>
-        ${year} 總量：${currentVal.toLocaleString()} kKLOE<br/>
+        ${year} 總量：${currentVal.toLocaleString()} ktoe<br/>
         與前一年變化：${change === "N/A" ? "無資料" : (change > 0 ? `增加 ${change}%` : `下降 ${Math.abs(change)}%`)}`;
     
     if (clickableDepartments.includes(d.name)) {
@@ -1360,248 +1563,8 @@ d3.select("#yearSlider").on("input", function() {
   updateEventsDisplay(year);
 });
 
-// 趨勢圖更新
-function updateTrendChart() {
-  const data1Type = d3.select("#data1").property("value");
-  const data2Type = d3.select("#data2").property("value");
-  
-  // 更新圖例
-  d3.select("#legend1").text(data1Type);
-  d3.select("#legend2").text(data2Type);
-  
-  // 更新圖例顏色
-  const color1 = colorMap[data1Type] || "#2e8b57";
-  const color2 = colorMap[data2Type] || "#013982";
-  d3.selectAll(".legend-color").nodes()[0].style.background = color1;
-  d3.selectAll(".legend-color").nodes()[1].style.background = color2;
-  
-  const trendChart = d3.select("#trend-chart");
-  trendChart.html("");
-  
-  if (historicalData.length === 0) return;
-  
-  const containerWidth = trendChart.node().offsetWidth;
-  const containerHeight = 400;
-  const margin = { top: 20, right: 80, bottom: 50, left: 80 };
-  const chartWidth = containerWidth - margin.left - margin.right;
-  const chartHeight = containerHeight - margin.top - margin.bottom;
-  
-  const trendSvg = trendChart.append("svg")
-    .attr("width", containerWidth)
-    .attr("height", containerHeight);
-  
-  const g = trendSvg.append("g")
-    .attr("transform", `translate(${margin.left},${margin.top})`);
-  
-  // X軸比例尺
-  const xScale = d3.scaleLinear()
-    .domain([1984, 2024])
-    .range([0, chartWidth]);
-  
-  // Y軸比例尺 - 數據1
-  const data1Values = historicalData.map(d => d[data1Type] || 0);
-  const y1Scale = d3.scaleLinear()
-    .domain([0, d3.max(data1Values) * 1.1 || 100])
-    .range([chartHeight, 0]);
-  
-  // Y軸比例尺 - 數據2
-  const data2Values = historicalData.map(d => d[data2Type] || 0);
-  const y2Scale = d3.scaleLinear()
-    .domain([0, d3.max(data2Values) * 1.1 || 100])
-    .range([chartHeight, 0]);
-  
-  // 繪製網格線
-  g.append("g")
-    .attr("class", "grid")
-    .attr("opacity", 0.1)
-    .call(d3.axisLeft(y1Scale)
-      .tickSize(-chartWidth)
-      .tickFormat(""));
-  
-  // X軸
-  g.append("g")
-    .attr("transform", `translate(0,${chartHeight})`)
-    .call(d3.axisBottom(xScale).tickFormat(d3.format("d")).ticks(10))
-    .selectAll("text")
-    .style("font-size", "12px");
-  
-  // 左側Y軸 - 數據1
-  g.append("g")
-    .call(d3.axisLeft(y1Scale).ticks(8))
-    .selectAll("text")
-    .style("font-size", "12px")
-    .style("fill", color1);
-  
-  // 右側Y軸 - 數據2
-  g.append("g")
-    .attr("transform", `translate(${chartWidth},0)`)
-    .call(d3.axisRight(y2Scale).ticks(8))
-    .selectAll("text")
-    .style("font-size", "12px")
-    .style("fill", color2);
-  
-  // 左側Y軸標籤
-  g.append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", -60)
-    .attr("x", -chartHeight / 2)
-    .attr("text-anchor", "middle")
-    .attr("class", "axis-label")
-    .style("fill", color1)
-    .style("font-weight", "bold")
-    .text(data1Type);
-  
-  // 右側Y軸標籤
-  g.append("text")
-    .attr("transform", "rotate(-90)")
-    .attr("y", chartWidth + 60)
-    .attr("x", -chartHeight / 2)
-    .attr("text-anchor", "middle")
-    .attr("class", "axis-label")
-    .style("fill", color2)
-    .style("font-weight", "bold")
-    .text(data2Type);
-  
-  // 線條生成器 - 數據1
-  const line1 = d3.line()
-    .x(d => xScale(d.year))
-    .y(d => y1Scale(d[data1Type] || 0))
-    .curve(d3.curveMonotoneX);
-  
-  // 線條生成器 - 數據2
-  const line2 = d3.line()
-    .x(d => xScale(d.year))
-    .y(d => y2Scale(d[data2Type] || 0))
-    .curve(d3.curveMonotoneX);
-  
-  // 繪製數據1線條
-  g.append("path")
-    .datum(historicalData)
-    .attr("class", "trend-line")
-    .attr("d", line1)
-    .attr("stroke", color1);
-  
-  // 繪製數據2線條
-  g.append("path")
-    .datum(historicalData)
-    .attr("class", "trend-line")
-    .attr("d", line2)
-    .attr("stroke", color2);
-  
-  // 數據1圓點
-  g.selectAll(".dot1")
-    .data(historicalData)
-    .join("circle")
-    .attr("class", "trend-dot")
-    .attr("cx", d => xScale(d.year))
-    .attr("cy", d => y1Scale(d[data1Type] || 0))
-    .attr("r", 4)
-    .attr("stroke", color1)
-    .on("mousemove", (event, d) => {
-      tooltip
-        .style("display", "block")
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY + 15) + "px")
-        .html(`<strong>${d.year}年</strong><br/>${data1Type}：${(d[data1Type] || 0).toLocaleString()} ktoe`);
-    })
-    .on("mouseout", () => tooltip.style("display", "none"));
-  
-  // 數據2圓點
-  g.selectAll(".dot2")
-    .data(historicalData)
-    .join("circle")
-    .attr("class", "trend-dot")
-    .attr("cx", d => xScale(d.year))
-    .attr("cy", d => y2Scale(d[data2Type] || 0))
-    .attr("r", 4)
-    .attr("stroke", color2)
-    .on("mousemove", (event, d) => {
-      tooltip
-        .style("display", "block")
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY + 15) + "px")
-        .html(`<strong>${d.year}年</strong><br/>${data2Type}：${(d[data2Type] || 0).toLocaleString()} ktoe`);
-    })
-    .on("mouseout", () => tooltip.style("display", "none"));
-}
-
-// 監聽下拉選單變化 - 立即刷新
-d3.select("#data1").on("change", updateTrendChart);
-d3.select("#data2").on("change", updateTrendChart);
-
-loadAllCSV(); / 2)
-    .attr("text-anchor", "middle")
-    .attr("class", "axis-label")
-    .style("fill", "#7099cf")
-    .style("font-weight", "bold")
-    .text(dataLabels[data2Type]);
-  
-  // 線條生成器 - 數據1
-  const line1 = d3.line()
-    .x(d => xScale(d.year))
-    .y(d => y1Scale(d[data1Type]))
-    .curve(d3.curveMonotoneX);
-  
-  // 線條生成器 - 數據2
-  const line2 = d3.line()
-    .x(d => xScale(d.year))
-    .y(d => y2Scale(d[data2Type]))
-    .curve(d3.curveMonotoneX);
-  
-  // 繪製數據1線條
-  g.append("path")
-    .datum(historicalData)
-    .attr("class", "trend-line")
-    .attr("d", line1)
-    .attr("stroke", "#2e8b57");
-  
-  // 繪製數據2線條
-  g.append("path")
-    .datum(historicalData)
-    .attr("class", "trend-line")
-    .attr("d", line2)
-    .attr("stroke", "#7099cf");
-  
-  // 數據1圓點
-  g.selectAll(".dot1")
-    .data(historicalData)
-    .join("circle")
-    .attr("class", "trend-dot")
-    .attr("cx", d => xScale(d.year))
-    .attr("cy", d => y1Scale(d[data1Type]))
-    .attr("r", 4)
-    .attr("stroke", "#2e8b57")
-    .on("mousemove", (event, d) => {
-      tooltip
-        .style("display", "block")
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY + 15) + "px")
-        .html(`<strong>${d.year}年</strong><br/>${dataLabels[data1Type]}：${d[data1Type].toLocaleString()}${data1Type.includes("Percent") ? "%" : " ktoe"}`);
-    })
-    .on("mouseout", () => tooltip.style("display", "none"));
-  
-  // 數據2圓點
-  g.selectAll(".dot2")
-    .data(historicalData)
-    .join("circle")
-    .attr("class", "trend-dot")
-    .attr("cx", d => xScale(d.year))
-    .attr("cy", d => y2Scale(d[data2Type]))
-    .attr("r", 4)
-    .attr("stroke", "#7099cf")
-    .on("mousemove", (event, d) => {
-      tooltip
-        .style("display", "block")
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY + 15) + "px")
-        .html(`<strong>${d.year}年</strong><br/>${dataLabels[data2Type]}：${d[data2Type].toLocaleString()}${data2Type.includes("Percent") ? "%" : " ktoe"}`);
-    })
-    .on("mouseout", () => tooltip.style("display", "none"));
-}
-
-// 監聽下拉選單變化
-d3.select("#data1").on("change", updateTrendChart);
-d3.select("#data2").on("change", updateTrendChart);
+d3.select("#data1-select").on("change", updateTrendChart);
+d3.select("#data2-select").on("change", updateTrendChart);
 
 loadAllCSV();
 </script>
