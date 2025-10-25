@@ -19,24 +19,24 @@
       position: sticky;
       top: 0;
       z-index: 10;
-      transition: padding-top 0.3s ease;
+      transition: padding-bottom 0.3s ease;
     }
     #timeline-container.has-events {
-      padding-top: 200px;
+      padding-bottom: 20px;
     }
     #timeline-container.no-events {
-      padding-top: 15px;
+      padding-bottom: 15px;
     }
     #events-display {
-      position: absolute;
-      top: -180px;
+      position: relative;
       left: 0;
       right: 0;
-      height: 175px;
       pointer-events: none;
       overflow: visible;
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s ease, height 0.3s ease;
+      margin-top: 15px;
+      height: 0;
     }
     #events-display.visible {
       opacity: 1;
@@ -48,6 +48,7 @@
       align-items: center;
       gap: 2px;
       animation: eventFadeIn 0.4s ease;
+      top: 0;
     }
     @keyframes eventFadeIn {
       from {
@@ -93,16 +94,16 @@
       width: 2px;
       height: 24px;
       background: rgba(102, 138, 185, 0.8);
-      top: -8px;
+      bottom: -8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     .event-bar::before {
       left: 0;
-      background: linear-gradient(to bottom, rgba(102, 138, 185, 0.3), rgba(102, 138, 185, 0.9));
+      background: linear-gradient(to top, rgba(102, 138, 185, 0.3), rgba(102, 138, 185, 0.9));
     }
     .event-bar::after {
       right: 0;
-      background: linear-gradient(to bottom, rgba(112, 153, 207, 0.3), rgba(112, 153, 207, 0.9));
+      background: linear-gradient(to top, rgba(112, 153, 207, 0.3), rgba(112, 153, 207, 0.9));
     }
     .event-years {
       font-size: 9px;
@@ -499,8 +500,8 @@
     <div id="slider-container">
       <label for="yearSlider">年份：</label>
       <div id="slider-wrapper">
-        <div id="events-display"></div>
         <input type="range" id="yearSlider" name="yearSlider" min="1982" max="2024" value="1982" step="1" style="width: 100%;" />
+        <div id="events-display"></div>
       </div>
       <span id="yearDisplay">1982</span>
     </div>
@@ -1216,6 +1217,7 @@ function updateEventsDisplay(year) {
   
   if (!eventsData || eventsData.length === 0) {
     eventsDisplay.classed("visible", false);
+    eventsDisplay.style("height", "0px");
     timelineContainer.classed("has-events", false).classed("no-events", true);
     return;
   }
@@ -1229,13 +1231,10 @@ function updateEventsDisplay(year) {
   // 如果沒有活躍事件，隱藏事件區域
   if (activeEvents.length === 0) {
     eventsDisplay.classed("visible", false);
+    eventsDisplay.style("height", "0px");
     timelineContainer.classed("has-events", false).classed("no-events", true);
     return;
   }
-  
-  // 有事件時顯示事件區域
-  eventsDisplay.classed("visible", true);
-  timelineContainer.classed("has-events", true).classed("no-events", false);
   
   const slider = document.getElementById("yearSlider");
   const minYear = +slider.min;
@@ -1246,9 +1245,11 @@ function updateEventsDisplay(year) {
   const sliderRect = slider.getBoundingClientRect();
   const sliderWidth = sliderRect.width;
   
-  // thumb 寬度為 20px，滑桿的有效範圍需要扣除兩端各 10px
-  const thumbRadius = 10;
-  const effectiveWidth = sliderWidth - (thumbRadius * 2);
+  // Chrome/Safari 的 range input thumb 寬度是 20px
+  // thumb 的中心點範圍：從 10px 到 (sliderWidth - 10px)
+  const thumbWidth = 20;
+  const thumbRadius = thumbWidth / 2;
+  const trackWidth = sliderWidth - thumbWidth;
   
   // 對事件按開始年份排序
   activeEvents.sort((a, b) => +a.start - +b.start);
@@ -1277,20 +1278,23 @@ function updateEventsDisplay(year) {
     }
     layers[layerIndex].push(event);
     
-    // 計算年份在滑桿上的比例位置
+    // 計算年份在滑桿上的比例位置 (0 到 1)
     const startRatio = (start - minYear) / yearRange;
     const endRatio = (end - minYear) / yearRange;
     
-    // 轉換為實際像素位置（加上左側偏移）
-    const leftPx = thumbRadius + (startRatio * effectiveWidth);
-    const rightPx = thumbRadius + (endRatio * effectiveWidth);
-    const widthPx = rightPx - leftPx;
+    // thumb 中心點的位置
+    const startThumbCenter = thumbRadius + (startRatio * trackWidth);
+    const endThumbCenter = thumbRadius + (endRatio * trackWidth);
+    
+    // 事件條的位置（對齊 thumb 中心）
+    const leftPx = startThumbCenter;
+    const widthPx = endThumbCenter - startThumbCenter;
     
     const eventItem = eventsDisplay.append("div")
       .attr("class", "event-item")
       .style("left", `${leftPx}px`)
       .style("width", `${widthPx}px`)
-      .style("bottom", `${layerIndex * 28}px`);
+      .style("top", `${layerIndex * 80}px`);
     
     eventItem.append("div")
       .attr("class", "event-name")
@@ -1306,6 +1310,14 @@ function updateEventsDisplay(year) {
       .attr("class", "event-years")
       .text(`${event.start} - ${event.end}`);
   });
+  
+  // 根據層數設定事件顯示區域的高度
+  const totalHeight = layers.length * 80 + 20;
+  eventsDisplay.style("height", `${totalHeight}px`);
+  
+  // 有事件時顯示事件區域
+  eventsDisplay.classed("visible", true);
+  timelineContainer.classed("has-events", true).classed("no-events", false);
 }
 
 async function loadAllCSV() {
