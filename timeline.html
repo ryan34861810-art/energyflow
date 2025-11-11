@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>能源流視覺化 - Vertical Timeline</title>
+  <title>能源流視覺化</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
   <style>
@@ -17,7 +17,7 @@
     }
     
     #timeline-sidebar {
-      width: 280px;
+      width: 350px;
       background: #fff;
       box-shadow: 2px 0 6px rgba(0,0,0,0.1);
       display: flex;
@@ -32,19 +32,27 @@
       flex-shrink: 0;
       height: 90px;
       box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     #timeline-header h2 {
-      margin: 0 0 10px 0;
-      font-size: 18px;
+      margin: 0;
+      font-size: 16px;
       font-weight: 600;
+      line-height: 1.2;
+      position: absolute;
+      left: 20px;
+      top: 20px;
     }
     
     #yearDisplay {
-      font-size: 32px;
-      font-weight: 300;
+      font-size: 26px;
+      font-weight: bold;
       text-align: center;
-      margin-top: -8px;
+      line-height: 1.2;
+      margin: 0;
     }
     
     #timeline-content {
@@ -52,143 +60,162 @@
       display: flex;
       overflow: hidden;
       position: relative;
-      padding: 20px 0;
+      padding: 30px 0;
     }
     
     #slider-column {
-      width: 40px;
+      width: 20px;
       position: relative;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: stretch;
       padding: 0;
       flex-shrink: 0;
+      margin: 0 0 0 15px;
     }
     
     #yearSlider {
-      -webkit-appearance: slider-vertical;
-      width: 6px;
+      width: 100%;
       height: 100%;
       background: transparent;
       outline: none;
-      transform: rotate(180deg);
+      writing-mode: vertical-lr;
+      direction: ltr;
+      -webkit-appearance: slider-vertical;
       margin: 0;
+      padding: 0;
+        accent-color: #668ab9;  /* 加這行 */
+
+
     }
     
     #yearSlider::-webkit-slider-runnable-track {
-      width: 6px;
-      height: 100%;
-      background: linear-gradient(to bottom, #ddd 0%, #ddd 100%);
-      border-radius: 3px;
+      width: 4px;
+      background: #ddd;
+      border-radius: 2px;
       cursor: pointer;
+      
     }
     
     #yearSlider::-moz-range-track {
-      width: 6px;
-      height: 100%;
-      background: linear-gradient(to bottom, #ddd 0%, #ddd 100%);
-      border-radius: 3px;
+      width: 4px;
+      background: #ddd;
+      border-radius: 2px;
       cursor: pointer;
     }
     
     #yearSlider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
-      background: #7099cf;
-      border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      background: #6C92C6;
+      border-radius: 40%;
       cursor: grab;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      margin-left: -5px;
+      margin-left: -5.5px;  /* ← 這裡!調整按鈕水平位置 */
+
+
     }
     
     #yearSlider:active::-webkit-slider-thumb {
       cursor: grabbing;
-      background: #5a7fb5;
+      background: #6D95C9;
     }
     
     #yearSlider::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      background: #7099cf;
+      width: 12px;
+      height: 12px;
+      background: #8bb2e5;
       border-radius: 50%;
       cursor: grab;
       border: none;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      margin-left: -5.5px;  /* ← 這裡!調整按鈕水平位置 */
+
     }
     
     #yearSlider:active::-moz-range-thumb {
       cursor: grabbing;
-      background: #5a7fb5;
+      background: #6d95c9;
     }
     
     #events-column {
       flex: 1;
-      padding: 0 10px 0 5px;
-      overflow-y: auto;
+      padding: 0 10px 0 25px;
+      overflow: visible;
       position: relative;
+      display: flex;
+      flex-direction: column;
     }
     
     .event-item {
       position: absolute;
       left: 0;
-      right: 0;
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      animation: eventFadeIn 0.4s ease;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 10px;
       z-index: 2;
+      opacity: 0;
+      animation: eventFadeIn 0.3s ease forwards;
     }
     
     @keyframes eventFadeIn {
       from {
         opacity: 0;
-        transform: translateY(-10px);
       }
       to {
         opacity: 1;
-        transform: translateY(0);
       }
     }
     
     .event-bar {
-      width: 6px;
-      background: linear-gradient(180deg, #668ab9, #7099cf);
-      border-radius: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
       box-shadow: 0 2px 4px rgba(102, 138, 185, 0.3);
       position: relative;
       flex-shrink: 0;
     }
     
+    .event-bar.multi-year {
+      width: 6px;
+      border-radius: 3px;
+    }
+    
     .event-bar::before,
     .event-bar::after {
-      content: '';
-      position: absolute;
-      height: 2px;
-      width: 12px;
-      background: rgba(102, 138, 185, 0.8);
-      left: 50%;
-      transform: translateX(-50%);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-    
-    .event-bar::before {
-      top: 0;
-      background: linear-gradient(to right, rgba(102, 138, 185, 0.3), rgba(102, 138, 185, 0.9), rgba(102, 138, 185, 0.3));
-    }
-    
-    .event-bar::after {
-      bottom: 0;
-      background: linear-gradient(to right, rgba(112, 153, 207, 0.3), rgba(112, 153, 207, 0.9), rgba(112, 153, 207, 0.3));
+      display: none;
     }
     
     .event-content {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      text-align: left;
+      align-self: flex-start;  /* 加這行 */
+
+    }
+    
+    .event-year-row {
+      display: flex;
+      flex-direction: row;
       align-items: center;
-      gap: 3px;
+      gap: 0;
+    }
+    
+    .event-year-number {
+      font-size: 10px;
+      font-weight: bold;
+      color: #333;
+      writing-mode: vertical-rl;
+      line-height: 1.2;
+    }
+    
+    .event-year-number.hidden {
+      visibility: hidden;
     }
     
     .event-name {
@@ -199,20 +226,17 @@
       padding: 4px 8px;
       border-radius: 3px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      border: 1px solid #ddd;
+      white-space: nowrap;
       writing-mode: vertical-rl;
       text-orientation: upright;
-      letter-spacing: 2px;
-      white-space: nowrap;
+      margin-left: 15px;
+      margin-top: -60px;
+
     }
     
     .event-years {
-      font-size: 9px;
-      color: #666;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 2px 6px;
-      border-radius: 2px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      writing-mode: horizontal-tb;
+      display: none;
     }
     
     #main-content {
@@ -221,6 +245,33 @@
       flex-direction: column;
       overflow-y: auto;
       overflow-x: hidden;
+      position: relative;
+    }
+    #events-hint {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+  opacity: 0.8;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    #data-source {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      font-size: 11px;
+      color: #666;
+      z-index: 5;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 5px 10px;
+      border-radius: 3px;
     }
     
     #stats-container {
@@ -229,15 +280,15 @@
       color: white;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       flex-shrink: 0;
-      height: 90px;
       box-sizing: border-box;
     }
     
     #stats-grid {
       display: flex;
       justify-content: space-around;
-      align-items: center;
+      align-items: flex-start;
       gap: 20px;
+      height: 60px;
     }
     
     .stat-item {
@@ -245,9 +296,10 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      min-height: 60px;
+      position: relative;
+      padding-top: 0;
     }
     
     .stat-value {
@@ -261,6 +313,31 @@
       font-size: 11px;
       opacity: 0.9;
       line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      justify-content: center;
+      height: 16px;
+    }
+    
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: white;
+    }
+    
+    .info-icon:hover {
+      background: rgba(255, 255, 255, 0.5);
+      transform: scale(1.1);
     }
     
     #chart {
@@ -457,6 +534,57 @@
       align-items: center;
     }
     
+    #info-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    #info-modal-content {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      max-width: 800px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      animation: modalFadeIn 0.3s ease;
+    }
+    
+    #info-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+    }
+    
+    #info-modal-close:hover {
+      background: #000;
+    }
+    
+    #info-modal-text {
+      font-size: 16px;
+      color: #333;
+      line-height: 1.6;
+    }
+    
     #modal-content {
       background: white;
       border-radius: 15px;
@@ -549,27 +677,38 @@
     </div>
     <div id="timeline-content">
       <div id="slider-column">
-        <input type="range" id="yearSlider" name="yearSlider" min="1982" max="2024" value="1982" step="1" style="writing-mode: bt-lr; -webkit-appearance: slider-vertical;" />
+        <input type="range" id="yearSlider" name="yearSlider" min="1982" max="2024" value="1982" step="1" />
       </div>
-      <div id="events-column"></div>
+      <div id="events-column">
+    <div id="events-hint">💡 點擊事件查看更多資訊</div>
+</div>
     </div>
   </div>
 
   <div id="main-content">
+    <div id="data-source">資料來源:經濟部能源署能源統計年報(平衡表)</div>
+    
     <div id="stats-container">
       <div id="stats-grid">
         <div class="stat-item">
           <div class="stat-label">總能源供給</div>
           <div class="stat-value" id="totalEnergy">-</div>
-          <div class="stat-label">ktoe</div>
+          <div class="stat-label">
+            ktoe
+            <span class="info-icon" data-info="總能源供給">?</span>
+          </div>
         </div>
         <div class="stat-item">
           <div class="stat-label">煤及煤產品佔比</div>
           <div class="stat-value" id="coalPercent">-</div>
+          <div class="stat-label">&nbsp;</div>
         </div>
         <div class="stat-item">
           <div class="stat-label">🌱再生能源佔比</div>
           <div class="stat-value" id="renewablePercent">-</div>
+          <div class="stat-label">
+            <span class="info-icon" data-info="再生能源佔比">?</span>
+          </div>
         </div>
       </div>
     </div>
@@ -605,6 +744,13 @@
       <div id="modal-sankey"></div>
     </div>
   </div>
+  
+  <div id="info-modal-overlay">
+    <div id="info-modal-content">
+      <button id="info-modal-close" type="button">×</button>
+      <div id="info-modal-text"></div>
+    </div>
+  </div>
 
 <script>
 const clickableDepartments = ["工業部門","運輸部門","農業部門","服務業部門"];
@@ -617,9 +763,214 @@ const modalTitle = d3.select("#modal-title");
 const modalSankey = d3.select("#modal-sankey");
 const modalClose = d3.select("#modal-close");
 
+const infoMessages = {
+  "總能源供給": "KTOE（Kilo Tonne of Oil Equivalent，千噸油當量）是將各種能源統一換算為原油能量等值的單位。1 KTOE 代表燃燒 1000 噸原油所釋放的能量，約等於 41.868 太焦耳（TJ）或約 11.63 GWh。此單位常用於比較不同能源種類或計算能源占比。",
+  "再生能源佔比": "再生能源佔比：此比例計算包括水力、地熱、太陽光電、風力以及生質能與廢棄物等五項能源在總能源供給端所佔比例。此比例反映再生能源在全能源體系中的地位，顯示我國能源結構仍以化石燃料為主,再生能源雖持續成長，但在整體能源供給中占比仍相對有限。"
+};
+
+  const genreMessages = {
+  "核能": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">核能</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1970年代：早期發展</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;">因應能源需求，台灣開始發展核電。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1971</strong>｜興建第一座核電廠（核一廠）。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1973</strong>｜受石油危機影響，核電廠被列為「十大建設」項目,加速發展。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1978–1979</strong>｜核一機組啟用商轉</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1980年代：穩定發電期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1981–1983</strong>｜核二機組啟用商轉</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1984–1985</strong>｜核三機組啟用商轉</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2011–2025年：逐步退出期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2011–2016</strong>｜福島核災後核四封存，推動《2025非核家園法》</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2018–2019</strong>｜第一核能電廠停機除役</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2021</strong>｜第四核能電廠重啟公投不通過</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2021–2023</strong>｜第二核能電廠停機除役</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2024–2025</strong>｜第三核能電廠停機除役，正式進入0核電時代</li>
+</ul>
+`,
+
+  "火力": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">火力發電</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1950–1970年代初：工業化起步期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1950年代</strong>｜國內主要依賴火力與水力並行，火力以燃煤為主。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1960年代</strong>｜台中、和平、麥寮等地陸續規劃大型火力電廠基地。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1970年代末–1990年代：石油危機後的燃煤復興期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1973、1979</strong>｜兩次石油危機，促使政府推動「燃煤替代石油」政策。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1989–1992</strong>｜台中火力發電廠(中火)完工商轉。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1990年代</strong>｜和平電廠、麥寮電廠等相繼興建，燃煤發電成為主力。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2000–2010年代：環保壓力與空汙爭議</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2000年後</strong>｜開放民間經營發電業，燃煤發電量達歷史高峰。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2004–2006</strong>｜台中火力發電廠增設兩部汽力發電機組，成為世界最大的火力發電廠</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2010年後</strong>｜中火排放與空汙爭議升高，引發社會關注。</li>
+  <li style="margin-bottom: 8px;">政府推動「非核家園」，燃煤仍維持主力供電地位。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2020年代：淨零轉型與燃煤退場</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2021</strong>｜政府宣布「2050淨零排放」。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2022起</strong>｜台中、興達等火力電廠規劃減煤、轉燃氣或退役。</li>
+</ul>
+`,
+
+  "水力": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">水力</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1985–現今：大小型水力並進，水力發電持續調峰。</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;">大型水力發電</li>
+  <p style="margin-bottom: 8px;">發展方向：持續評估與開發中大型水力計畫，利用現有水庫進行抽蓄發電。</li>
+  <li style="margin-bottom: 8px;">小型水力發電</li>
+  <p style="margin-bottom: 8px;">發展方向：利用現有水利設施，以降低環境衝擊，並達成「一水多用」的效益。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1985</strong>｜明湖抽蓄式水力發電廠完工商轉。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1994–1995</strong>｜明潭抽蓄式水力電廠完工商轉，為臺灣裝置容量最大的水力調峰電源。</li>
+</ul>
+`,
+
+  "太陽能": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">太陽能</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2000–2009年：早期推廣與示範。</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2000年</strong>｜行政院推行「陽光屋頂」十萬戶設置太陽能設備</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2009–2012：太陽能裝置量爆發式成長。</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2009年</strong>｜再生能源發展條例通過，實施FIT躉購制度</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2012–現今：推動太陽光電普及化，太陽能裝置容量快速成長。</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2012</strong>｜啟動陽光屋頂百萬座計畫，設定2020年達成1020MW光電設置量，以加速太陽能發展。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2014–2018</strong>｜屋頂與地面大型場域快速擴張（龍井、金湖等示範與大量安裝）</li>
+</ul>
+`,
+
+  "風力": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">風力</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2000–2005年：陸上風場示範啟動與技術擴增期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2007年</strong>｜彰化彰濱工業區風力發電場（多座大型風機），臺灣首座大型商用陸域風場啟動商轉。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2012年</strong>｜公布「風力發電離岸系統示範獎勵辦法」啟動離岸風電開發。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2016–現今：離岸風電快速擴展期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2005–2009</strong>｜彰濱工業區風力發電場設置完成</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2017</strong>｜海洋竹南風力發電場第一期商轉</li>
+    <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2017–2019</strong>｜全臺首座商業規模離岸風電場「Formosa 1」完工啟動商轉，展現離岸風電產業化成果。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2023</strong>｜海能離岸風力發電場正式商轉，成為台灣裝置容量最大離岸風電</li>
+</ul>
+`,
+
+  "地熱": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">地熱</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1966–1993年：初期探勘與早期開發</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1973年</strong>｜1973年發生全球石油危機，開始實施詳細調查探勘</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1977年</strong>｜建造第一座1,500 kWe先驅型地熱試驗電廠，供各項試驗研究與示範。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1993年</strong>｜清水地熱發電廠停止發電試驗。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1994–2005年：開發停滯期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;">隨著清水地熱電廠發電量下滑而停止營運，台灣地熱發展進入長時間的停滯期。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2006–2019年：開發再生期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2006</strong>｜工研院在清水地熱區進行地熱資源開發再生計畫。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2021</strong>｜清水地熱發電廠啟用，是全台首個民間營運MW（百萬瓦）等級地熱電廠</li>
+</ul>
+`,
+
+  "生質能": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">生質能</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1986–現今：生質能發電逐步增加。</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1986</strong>｜首座沼氣發電示範廠啟用</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1989</strong>｜生質能首次在能源供應中出現</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2010</strong>｜屏東縣六塊厝建置廚餘沼氣發電示範場（全臺首座廚餘沼氣場），將廚餘轉化為沼氣發電，提高廚餘資源化利用</li>
+</ul>
+`,
+
+  "天然氣": `
+<h2 style="font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px;">天然氣</h2>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1960–1980年代：油氣發現高峰期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <p style="margin-bottom: 8px;">台灣最早開採天然氣可追溯到清領時期，經1960-1980年代的油氣發現高峰期，迎來天然氣產量的全盛期，最高日產天然氣可達五百餘萬立方公尺，年產量接近20億立方公尺。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">1990–2010年代：穩健成長期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">1990年</strong>｜永安液化天然氣接收站（一接）啟用，開始進口液化天然氣，自產天然氣的市場比例逐年下降。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2006年</strong>｜大潭天然氣發電廠開始商轉，成為天然氣主力電廠。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2009年</strong>｜台中液化天然氣接收站（二接）啟用。</li>
+</ul>
+
+<h3 style="font-size: 20px; font-weight: 600; color: #34495e; margin-top: 25px; margin-bottom: 12px;">2011–現今：接收站擴展期</h3>
+<ul style="line-height: 1.8; margin-left: 20px;">
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2011年</strong>｜宣布2025「非核家園」構想，喊話2025年「532」發電能源配比，即天然氣50%、燃煤30%、再生能源20%。</li>
+  <li style="margin-bottom: 8px;"><strong style="color: #e74c3c;">2011年–現今</strong>｜政策確立後，開始規劃增加天然氣供應能力，陸續規劃「三接」（第三天然氣接收站）到「七接」（第七天然氣接收站）在未來取代部分燃煤與核能電力，以達成燃氣發電占比50%目標。</li>
+</ul>
+`
+};
+
+
+
+function showInfoModal(key) {
+  const infoModalOverlay = d3.select("#info-modal-overlay");
+  const infoModalText = d3.select("#info-modal-text");
+  const message = infoMessages[key] || genreMessages[key] || "無說明";
+  infoModalText.html(message);
+  infoModalOverlay.style("display", "flex");
+}
+
+function closeInfoModal() {
+  d3.select("#info-modal-overlay").style("display", "none");
+}
+
+d3.select("#info-modal-close").on("click", closeInfoModal);
+d3.select("#info-modal-overlay").on("click", function(event) {
+  if (event.target === d3.select("#info-modal-overlay").node()) {
+    closeInfoModal();
+  }
+});
+
+d3.selectAll(".info-icon").on("click", function() {
+  const key = d3.select(this).attr("data-info");
+  showInfoModal(key);
+});
+
 const chartContainer = document.getElementById('chart');
-let chartWidth = chartContainer.offsetWidth - 40;
-let chartHeight = chartContainer.offsetHeight - 40;
+let chartWidth = 0;
+let chartHeight = 0;
+
+function initChart() {
+  chartWidth = chartContainer.offsetWidth - 40;
+  chartHeight = chartContainer.offsetHeight - 40;
+}
+
+initChart();
 
 const svg = chart.append("svg")
   .attr("width", chartWidth)
@@ -653,14 +1004,14 @@ const colorMap = {
   "原油及石油的製造與分銷": "#ade6e7",
   "天然氣的生產與分銷": "#dcdda3",
   "能源部門自用": "#bcbcbc",
-  "電網損耗": "#8c8c8c",
+  "電網損耗": "#fcd001",
   "工業部門": "#1f77b4",
   "運輸部門": "#ff7f0e",
   "住宅部門": "#2ca02c",
   "服務業部門": "#d62728",
   "農業部門": "#9467bd",
-  "轉換效率損失": "#7f7f7f",
-  "非能源消費": "#aaaaaa"
+  "轉換效率損失": "#494646",
+  "非能源消費": "#f084ff"
 };
 
 const csvBase = "https://raw.githubusercontent.com/ryan34861810-art/energyflow/main/csv/";
@@ -694,12 +1045,12 @@ function showDepartmentModal(departmentName, year) {
   const nodeMap = new Map();
   let nodeIndex = 0;
   
-  // 工業部門：使用分類彙總
+  const departmentTotal = d3.sum(subItems, d => +d["Value(kKLOE)"]);
+  
   if (departmentName === "工業部門") {
     const categorizedItems = {};
     subItems.forEach(d => {
       const target = d.Target;
-      // 從 category.csv 查找分類，如果找不到則歸類為"其他"
       const category = categoryData[target] || "其他";
       
       if (!categorizedItems[category]) {
@@ -708,18 +1059,15 @@ function showDepartmentModal(departmentName, year) {
       categorizedItems[category] += +d["Value(kKLOE)"];
     });
     
-    // Layer 0: 工業部門
     sankeyNodes.push({ name: departmentName, layer: 0 });
     nodeMap.set(departmentName, nodeIndex++);
     
-    // Layer 1: 分類
     const categories = Object.keys(categorizedItems).sort();
     categories.forEach(category => {
       sankeyNodes.push({ name: category, layer: 1 });
       nodeMap.set(category, nodeIndex++);
     });
     
-    // 建立連結：部門 -> 分類
     categories.forEach(category => {
       sankeyLinks.push({
         source: nodeMap.get(departmentName),
@@ -728,7 +1076,6 @@ function showDepartmentModal(departmentName, year) {
       });
     });
   } else {
-    // 其他部門：維持原本的兩層結構
     const sources = new Set();
     const targets = new Set();
     
@@ -765,7 +1112,7 @@ function showDepartmentModal(departmentName, year) {
   
   setTimeout(() => {
     const modalWidth = modalSankey.node().offsetWidth;
-    const modalHeight = 600;
+    const modalHeight = modalSankey.node().offsetHeight;
     const modalSvg = modalSankey.append("svg").attr("width", modalWidth).attr("height", modalHeight);
     const leftX = 100;
     const rightX = modalWidth - 150;
@@ -835,14 +1182,18 @@ function showDepartmentModal(departmentName, year) {
       const xi = d3.interpolateNumber(x0, x1);
       const x2 = xi(0.5);
       return `M${x0},${y0 - hw} C${x2},${y0 - hw} ${x2},${y1 - hw} ${x1},${y1 - hw} L${x1},${y1 + hw} C${x2},${y1 + hw} ${x2},${y0 + hw} ${x0},${y0 + hw} Z`;
-    }).attr("fill", linkColor).attr("fill-opacity", 0.5);
+    }).attr("fill", linkColor).attr("fill-opacity", 0.5).on("mousemove", function(event, d) {
+      const percentage = ((d.value / departmentTotal) * 100).toFixed(1);
+      tooltip.style("display", "block").style("left", (event.pageX + 15) + "px").style("top", (event.pageY + 15) + "px").html(`<strong>${d.target.name}</strong><br/>數值：${d.value.toLocaleString()} ktoe<br/>佔${departmentName}：${percentage}%`);
+    }).on("mouseout", () => tooltip.style("display", "none"));
     
     const node = modalSvg.append("g").selectAll("g").data(sankeyNodes).join("g").attr("class", "modal-node");
     node.append("rect").attr("x", d => d.x0).attr("y", d => d.y0).attr("height", d => d.y1 - d.y0).attr("width", d => d.x1 - d.x0).attr("rx", 4).attr("ry", 4).attr("fill", linkColor);
     node.append("text").attr("x", d => d.x0 < modalWidth / 2 ? d.x1 + 6 : d.x0 - 6).attr("y", d => (d.y1 + d.y0) / 2).attr("dy", "0.35em").attr("text-anchor", d => d.x0 < modalWidth / 2 ? "start" : "end").text(d => d.name).style("font-size", "13px");
     node.on("mousemove", (event, d) => {
       const value = d3.sum(sankeyLinks.filter(l => sankeyNodes[l.source].name === d.name || sankeyNodes[l.target].name === d.name), l => l.value);
-      tooltip.style("display", "block").style("left", (event.pageX + 15) + "px").style("top", (event.pageY + 15) + "px").html(`<strong>${d.name}</strong><br/>數值：${value.toLocaleString()} ktoe`);
+      const percentage = ((value / departmentTotal) * 100).toFixed(1);
+      tooltip.style("display", "block").style("left", (event.pageX + 15) + "px").style("top", (event.pageY + 15) + "px").html(`<strong>${d.name}</strong><br/>數值：${value.toLocaleString()} ktoe<br/>佔${departmentName}：${percentage}%`);
     }).on("mouseout", () => tooltip.style("display", "none"));
   }, 50);
 }
@@ -931,25 +1282,24 @@ function updateTrendChart() {
     legend.html("");
     if (!data1Name && !data2Name) return;
     
-    const chartContainer = document.getElementById('chart');
-    const chartWidth = chartContainer.offsetWidth - 40;
+    const currentChartWidth = chartContainer.offsetWidth - 40;
     
     const margin = {top: 20, right: 100, bottom: 40, left: 100};
-    const width = chartWidth - margin.left - margin.right;
-    const height = 280 - margin.top - margin.bottom;
-    const svg = trendChart.append("svg").attr("width", chartWidth).attr("height", height + margin.top + margin.bottom).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    const trendWidth = currentChartWidth - margin.left - margin.right;
+    const trendHeight = 280 - margin.top - margin.bottom;
+    const svg = trendChart.append("svg").attr("width", currentChartWidth).attr("height", trendHeight + margin.top + margin.bottom).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
     
     const data1 = data1Name ? years.map(y => ({year: y, value: getNodeValue(data1Name, y)})) : [];
     const data2 = data2Name ? years.map(y => ({year: y, value: getNodeValue(data2Name, y)})) : [];
     const allValues = [...data1.map(d => d.value), ...data2.map(d => d.value)];
     const maxValue = d3.max(allValues) || 100;
     
-    const x = d3.scaleLinear().domain([years[0], years[years.length - 1]]).range([0, width]);
-    const y = d3.scaleLinear().domain([0, maxValue * 1.1]).range([height, 0]);
+    const x = d3.scaleLinear().domain([years[0], years[years.length - 1]]).range([0, trendWidth]);
+    const y = d3.scaleLinear().domain([0, maxValue * 1.1]).range([trendHeight, 0]);
     
-    svg.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickFormat(d3.format("d")).ticks(8)).style("font-size", "11px");
+    svg.append("g").attr("transform", `translate(0,${trendHeight})`).call(d3.axisBottom(x).tickFormat(d3.format("d")).ticks(8)).style("font-size", "11px");
     svg.append("g").call(d3.axisLeft(y).tickFormat(d => d.toLocaleString())).style("font-size", "11px");
-    svg.append("text").attr("transform", "rotate(-90)").attr("y", -55).attr("x", -height / 2).attr("text-anchor", "middle").style("font-size", "12px").style("fill", "#666").text("數值 (ktoe)");
+    svg.append("text").attr("transform", "rotate(-90)").attr("y", -55).attr("x", -trendHeight / 2).attr("text-anchor", "middle").style("font-size", "12px").style("fill", "#666").text("數值 (ktoe)");
     
     const line = d3.line().x(d => x(d.year)).y(d => y(d.value)).curve(d3.curveMonotoneX);
     
@@ -1005,12 +1355,9 @@ async function loadEvents() {
     if (response.ok) {
       const text = await response.text();
       eventsData = d3.csvParse(text);
-      console.log('Events loaded:', eventsData);
-    } else {
-      console.log('Events file not found, status:', response.status);
     }
   } catch (e) {
-    console.log('No events file found:', e);
+    console.log('No events file found');
   }
 }
 
@@ -1021,7 +1368,6 @@ async function loadCategories() {
       let text = await response.text();
       
       if (text.includes('�') || text.match(/[\u0080-\u009F]/)) {
-        console.log('Category file needs Big5 conversion');
         const blob = await (await fetch(`${csvBase}category.csv`)).blob();
         text = await new Promise((resolve) => {
           const reader = new FileReader();
@@ -1031,44 +1377,28 @@ async function loadCategories() {
       }
       
       const data = d3.csvParse(text);
-      console.log('Category data loaded:', data);
-      
       data.forEach(row => {
         if (row['部門'] && row['分類']) {
           categoryData[row['部門']] = row['分類'];
         }
       });
-      console.log('Category mapping created:', Object.keys(categoryData).length, 'items');
-      console.log('Sample mappings:', Object.entries(categoryData).slice(0, 5));
-    } else {
-      console.log('Category file not found, status:', response.status);
     }
   } catch (e) {
-    console.log('Failed to load category.csv:', e);
+    console.log('Failed to load category.csv');
   }
 }
 
 function updateEventsDisplay(year) {
   const eventsColumn = d3.select("#events-column");
-  eventsColumn.html("");
+  eventsColumn.html('<div id="events-hint">💡 點擊事件查看更多資訊</div>');
   
-  console.log('Updating events for year:', year);
-  console.log('Events data available:', eventsData);
-  
-  if (!eventsData || eventsData.length === 0) {
-    console.log('No events data loaded');
-    return;
-  }
+  if (!eventsData || eventsData.length === 0) return;
   
   const activeEvents = eventsData.filter(e => {
     const start = +e.start;
     const end = +e.end;
-    const isActive = year >= start && year <= end;
-    console.log(`Event: ${e.event}, start: ${start}, end: ${end}, active: ${isActive}`);
-    return isActive;
+    return year >= start && year <= end;
   });
-  
-  console.log('Active events:', activeEvents.length);
   
   if (activeEvents.length === 0) return;
   
@@ -1076,36 +1406,193 @@ function updateEventsDisplay(year) {
   const minYear = +slider.min;
   const maxYear = +slider.max;
   const yearRange = maxYear - minYear;
-  const sliderRect = slider.getBoundingClientRect();
-  const sliderHeight = sliderRect.height;
-  const thumbHeight = 18;
-  const thumbRadius = thumbHeight / 2;
-  const trackHeight = sliderHeight - thumbHeight;
   
-  activeEvents.sort((a, b) => +a.start - +b.start);
+  // 使用容器的實際高度
+  const containerHeight = document.getElementById("timeline-content").offsetHeight;
+  
+  // 固定的邊距，讓事件不超出可見範圍
+  const topMargin = 0;
+  const bottomMargin = 70;
+  const usableHeight = containerHeight - topMargin - bottomMargin;
+  
+  activeEvents.sort((a, b) => {
+    const midA = (+a.start + +a.end) / 2;
+    const midB = (+b.start + +b.end) / 2;
+    return midA - midB;
+  });
+  
+  const eventsByYear = new Map();
+  
   activeEvents.forEach((event) => {
     const start = +event.start;
     const end = +event.end;
-    const startRatio = (start - minYear) / yearRange;
-    const endRatio = (end - minYear) / yearRange;
-    const startPx = thumbRadius + (startRatio * trackHeight);
-    const endPx = thumbRadius + (endRatio * trackHeight);
-    const topPx = startPx;
-    const heightPx = Math.max(endPx - startPx, 20);
+    const midYear = (start + end) / 2;
+    const yearKey = `${start}-${end}`;
     
-    const eventItem = eventsColumn.append("div").attr("class", "event-item").style("top", `${topPx}px`).style("height", `${heightPx}px`);
-    eventItem.append("div").attr("class", "event-bar").style("height", `${heightPx}px`);
-    const eventContent = eventItem.append("div").attr("class", "event-content");
-    eventContent.append("div").attr("class", "event-name").text(event.event);
-    eventContent.append("div").attr("class", "event-years").text(`${event.start}-${event.end}`);
+    if (!eventsByYear.has(yearKey)) {
+      eventsByYear.set(yearKey, {
+        midYear: midYear,
+        start: start,
+        end: end,
+        events: []
+      });
+    }
+    eventsByYear.get(yearKey).events.push(event);
+  });
+  
+  const sortedYearGroups = Array.from(eventsByYear.values()).sort((a, b) => a.midYear - b.midYear);
+  
+  // 計算事件水平位置（相同事件名稱保持相同位置）
+const eventPositions = new Map();
+const eventNameToOffset = new Map(); // 記錄每個事件名稱的固定位置
+const occupiedRanges = [];
+
+sortedYearGroups.forEach((yearGroup) => {
+  yearGroup.events.forEach((event) => {
+    const eventKey = `${event.event}-${yearGroup.start}-${yearGroup.end}`;
+    const eventName = event.event;
+    
+    // 如果這個事件名稱已經有固定位置，直接使用
+    if (eventNameToOffset.has(eventName)) {
+      const offset = eventNameToOffset.get(eventName);
+      eventPositions.set(eventKey, offset);
+      occupiedRanges.push({
+        start: yearGroup.start,
+        end: yearGroup.end,
+        offset: offset,
+        eventName: eventName
+      });
+    } else {
+      // 為新的事件名稱找位置
+      let offset = 0;
+      let foundPosition = false;
+      
+      while (!foundPosition) {
+        const conflicts = occupiedRanges.filter(range => 
+          range.offset === offset &&
+          !(yearGroup.end < range.start || yearGroup.start > range.end)
+        );
+        
+        if (conflicts.length === 0) {
+          foundPosition = true;
+          eventPositions.set(eventKey, offset);
+          eventNameToOffset.set(eventName, offset); // 記錄這個事件名稱的固定位置
+          occupiedRanges.push({
+            start: yearGroup.start,
+            end: yearGroup.end,
+            offset: offset,
+            eventName: eventName
+          });
+        } else {
+          offset += 75;
+        }
+      }
+    }
+  });
+});
+  
+  sortedYearGroups.forEach((yearGroup) => {
+    // 簡單的比例計算
+    const startYear = yearGroup.start;
+    const endYear = yearGroup.end;
+    
+    // 計算年份在範圍中的比例
+    const startRatio = (startYear - minYear) / yearRange;
+    const endRatio = (endYear + 1 - minYear) / yearRange;
+    
+    // 轉換成像素位置
+    const startPx = topMargin + (startRatio * usableHeight);
+    const endPx = topMargin + (endRatio * usableHeight);
+    
+    const actualBarHeight = endPx - startPx;
+    const isMultiYear = yearGroup.start !== yearGroup.end;
+    
+    yearGroup.events.forEach((event, index) => {
+      const genre = event.genre ? event.genre.trim() : "";
+      let barColor = "#1e90ff";
+      
+      if (genre) {
+        if (genre.includes("核能")) barColor = colorMap["核能"] || "#c4a3c5";
+        else if (genre.includes("天然氣")) barColor = colorMap["天然氣"] || "#dcdda3";  // ← 加這行
+
+        else if (genre.includes("火力") || genre.includes("煤") || genre.includes("石油")) barColor = colorMap["煤及煤產品"] || "#013982";
+        else if (genre.includes("水力")) barColor = colorMap["水力"] || "#1e90ff";
+        else if (genre.includes("太陽")) barColor = colorMap["太陽光電"] || "#ffa500";
+        else if (genre.includes("風力")) barColor = colorMap["風力"] || "#00ced1";
+        else if (genre.includes("地熱")) barColor = colorMap["地熱"] || "#dc143c";
+        else if (genre.includes("生質")) barColor = colorMap["生質能及廢棄物"] || "#8b4513";
+      }
+      
+      const eventKey = `${event.event}-${yearGroup.start}-${yearGroup.end}`;
+      const leftOffset = eventPositions.get(eventKey) || 0;
+      
+      const eventItem = eventsColumn.append("div")
+        .attr("class", "event-item")
+        .style("top", `${startPx}px`)
+        .style("left", `${leftOffset}px`);
+      
+      const eventBar = eventItem.append("div")
+        .attr("class", "event-bar" + (isMultiYear ? " multi-year" : ""))
+        .style("background", barColor);
+      
+      if (isMultiYear && actualBarHeight > 0) {
+        eventBar.style("height", `${actualBarHeight}px`);
+      }
+      
+      const eventContent = eventItem.append("div").attr("class", "event-content");
+      
+      const yearRow = eventContent.append("div")
+        .attr("class", "event-year-row");
+      
+      yearRow.append("div")
+        .attr("class", "event-year-number") 
+        .text(yearGroup.start === yearGroup.end ? yearGroup.start : `${yearGroup.start}-${yearGroup.end}`);
+      
+      const eventName = eventContent.append("div")
+  .attr("class", "event-name")
+  .text(event.event)
+  .style("transform", "translateY(0px)");
+
+setTimeout(() => {
+  const eventNameNode = eventName.node();
+  const nameRect = eventNameNode.getBoundingClientRect();
+  const nameBottom = nameRect.bottom;
+  const nameTop = nameRect.top;
+  const nameHeight = nameRect.height;
+  const columnRect = document.getElementById("events-column").getBoundingClientRect();
+  const columnBottom = columnRect.bottom;
+  const columnTop = columnRect.top + 35; // 提示文字高度加一些間距
+  
+  // 檢查是否快碰到底部（距離底部少於 10px）
+  if (nameBottom > columnBottom - 10) {
+    // 從底部對齊
+    const adjustment = nameBottom - (columnBottom);
+    eventName.style("transform", `translateY(-${adjustment}px)`);
+  }
+  // 檢查頂部碰撞
+  else if (nameTop < columnTop) {
+    const adjustment = columnTop - nameTop + 5;
+    eventName.style("transform", `translateY(${adjustment}px)`);
+  }
+  // 否則保持預設（對齊垂直條頂部）
+  else {
+    eventName.style("transform", `translateY(0px)`);
+  }
+}, 10);
+      
+      if (genre) {
+        eventItem.style("cursor", "pointer")
+          .on("click", function() {
+            showInfoModal(genre);
+          });
+      }
+    });
   });
 }
 
 async function loadAllCSV() {
   await loadEvents();
   await loadCategories();
-  
-  console.log('開始載入 CSV 資料...');
   
   for (const y of years) {
     const rocYear = y - 1911;
@@ -1117,17 +1604,12 @@ async function loadAllCSV() {
     let loaded = false;
     for (const url of urls) {
       try {
-        console.log(`嘗試載入: ${url}`);
         const response = await fetch(url);
-        if (!response.ok) {
-          console.log(`  失敗: ${response.status}`);
-          continue;
-        }
+        if (!response.ok) continue;
         
         let text = await response.text();
         
         if (text.includes('�') || text.match(/[\u0080-\u009F]/)) {
-          console.log(`  需要 Big5 轉換`);
           const blob = await (await fetch(url)).blob();
           text = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -1139,22 +1621,14 @@ async function loadAllCSV() {
         const data = d3.csvParse(text);
         if (data && data.length > 0) {
           dataByYear[y] = data;
-          console.log(`  成功載入 ${y}: ${data.length} 筆資料`);
           loaded = true;
           break;
         }
       } catch (e) {
-        console.error(`  載入失敗 ${url}:`, e);
+        continue;
       }
     }
-    
-    if (!loaded) {
-      console.warn(`警告: 無法載入 ${y} 年的資料`);
-    }
   }
-  
-  console.log('載入完成，總共載入年份:', Object.keys(dataByYear).length);
-  console.log('已載入的年份:', Object.keys(dataByYear).sort());
   
   updateChart(1982);
   updateEventsDisplay(1982);
@@ -1193,10 +1667,6 @@ function buildSankeyData(data) {
   return { nodes, links };
 }
 
-function getLayerX(layer) {
-  return {0: 100, 1: chartWidth / 2, 2: chartWidth - 150}[layer];
-}
-
 function updateChart(year) {
   d3.select("#yearDisplay").text(year);
   svg.selectAll("*").remove();
@@ -1223,10 +1693,11 @@ function updateChart(year) {
   d3.select("#renewablePercent").text(renewablePercent + "%");
   
   const graphData = buildSankeyData(currentData);
-  graphData.nodes.forEach(n => {n.fixedX = getLayerX(n.layer);});
+  const layerX = {0: 100, 1: chartWidth / 2, 2: chartWidth - 150};
+  graphData.nodes.forEach(n => {n.fixedX = layerX[n.layer];});
   const sankeyData = sankey(graphData);
   sankeyData.nodes.forEach(n => {
-    const targetX = getLayerX(n.layer);
+    const targetX = layerX[n.layer];
     n.x0 = targetX;
     n.x1 = targetX + 35;
   });
